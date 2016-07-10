@@ -5,7 +5,7 @@
 #ifndef MINISQLFROM0_BM_ERROR_H
 #define MINISQLFROM0_BM_ERROR_H
 
-#define NO_MORE_FREE_PAGE
+#define NO_MORE_FREE_PAGE -1
 #define INVALID_SLOT -1
 // RC code definition
 /* warnings */

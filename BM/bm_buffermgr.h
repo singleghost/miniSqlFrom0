@@ -36,13 +36,21 @@ public:
 
     RC AllocatePage(int fd, int pageNum, char *&ppointer);
     RC FreePage(int fd, int pageNum);
-    RC PinPage(int fd, int pageNum);
     RC UnPinPage(int fd, int pageNum);
+    void ForcePage(int fd, int pageNum);    //把一页写回硬盘,但不从buffer pool里移除
+    void writeBackAllDirty(int fd);         //把某文件的所有dirty page写回磁盘, 但不从buffer pool里移除
+    char *GetPage(int fd, int pageNum);
+    void MarkDirty(int fd, int pageNum);
 
-
+    //may be used for test only!
+    void ReadPage(int fd, int pageNum, char *dest);
+    void WritePage(int fd, int pageNum , char *src);
+    void PrintPageDescTable();
 private:
-    RC LinkHead(int slot);
-    RC UnLink(int slot);
+    RC UsedLinkHead(int slot);  //将slot放在usedlist的头
+    RC UnlinkFromFree(int slot);    //将slot从freelist中移除
+    RC UnlinkFromUsed(int slot);    //将slot从usedlist中移除
+    RC FreeLinkHead(int slot);  //将slot放在freelist的表头
 };
 
 

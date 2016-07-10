@@ -20,7 +20,6 @@ struct TableEntry {
 class BM_HashTable {
 
 private:
-    const int INVALID_SLOT = -1;
     TableEntry **HashTable;
     int numOfBuckets;
 

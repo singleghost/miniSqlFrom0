@@ -6,12 +6,14 @@
 #include <fcntl.h>
 #include <zconf.h>
 #include <cstdio>
+#include <stdexcept>
 #include "bm_buffermgr.h"
-#include "bm_error.h"
+#include "bm.h"
 
-
+using namespace std;
 
 BM_BufferMgr::BM_BufferMgr(int numOfPages) {
+    if(numOfPages <= 0 || numOfPages >= MAX_BUFFER_POOL_SIZE) throw invalid_argument("argument numOfPages not valid");
     this->numOfPages = numOfPages;
     PageDescTable = new bufferPageDesc[numOfPages];
     for (auto i = 0; i < numOfPages; i++) {
@@ -52,6 +54,7 @@ RC BM_BufferMgr::UnlinkFromUsed(int slot) {
 }
 
 RC BM_BufferMgr::UsedLinkHead(int slot) {
+    if(lastUsed == -1) lastUsed = slot;
     PageDescTable[firstUsed].prev = slot;
     PageDescTable[slot].prev = INVALID_SLOT;
     PageDescTable[slot].next = firstUsed;
@@ -61,59 +64,23 @@ RC BM_BufferMgr::UsedLinkHead(int slot) {
 
 RC BM_BufferMgr::AllocatePage(int fd, int pageNum, char *&ppointer) {
 
-    int RC = 0;
     int slot;
+    //先在hash表中寻找是否已经存在，存在的话返回错误
 
-    //先在hash表中寻找是否已经存在，存在的话直接返回
     hashTable->Find(fd, pageNum, slot);
-    if (slot != INVALID_SLOT) {
-        ppointer = PageDescTable[slot].page_addr;
-        return RC;
-    }
+    if(slot != INVALID_SLOT) {
+        //如果Page已经被读入内存
 
-    //free list中寻找空闲的页，如没有则替换掉最近被使用的页
-    if (firstFree != NO_MORE_FREE_PAGE) {
-        int temp = firstFree;
-        firstFree = PageDescTable[firstFree].next;
-        hashTable->Insert(fd, pageNum, temp);
-        PageDescTable[temp].fd = fd;
-        PageDescTable[temp].pageNum = pageNum;
-        PageDescTable[temp].pinCount = 0;
-        PageDescTable[temp].isdirty = false;
-        UsedLinkHead(temp);
-        firstUsed = temp;
-        if(lastUsed == -1) lastUsed = temp;
-        ppointer = PageDescTable[temp].page_addr;
-        return 0;
+        throw page_exist_exception();
     } else {
-        //替换掉最早被使用过的页
-        int _slot;
-        for(_slot = lastUsed; _slot != INVALID_SLOT; _slot = PageDescTable[_slot].prev) {
-            if(PageDescTable[_slot].pinCount == 0) {
-                if(PageDescTable[_slot].isdirty) {
-                    int offset = PF_FILE_Hdr + pageNum * pageSize;
-                    lseek(PageDescTable[_slot].fd, offset, L_SET);
-                    write(PageDescTable[_slot].fd, PageDescTable[_slot].page_addr, pageSize);
-                    PageDescTable[_slot].isdirty = false;
-                }
-                hashTable->Delete(PageDescTable[_slot].fd, PageDescTable[_slot].pageNum);
-
-                if(_slot == lastUsed) lastUsed = PageDescTable[_slot].prev;
-                UnlinkFromFree(_slot);
-                hashTable->Insert(fd, pageNum, _slot);
-                UsedLinkHead(_slot);
-                PageDescTable[_slot].fd = fd;
-                PageDescTable[_slot].pageNum = pageNum;
-                PageDescTable[_slot].isdirty = false;
-                PageDescTable[_slot].pinCount = 0;
-                ppointer = PageDescTable[_slot].page_addr;
-                return 0;
-            }
-        }
-
-        return PF_NO_FREE_BUF_WARNING;
-
+        //如果内存中没有该Page
+        InternalAlloc(slot);
+        InitPageDesc(fd, pageNum, slot);
+        hashTable->Insert(fd, pageNum, slot);
+        ppointer = PageDescTable[slot].page_addr;
+        PageDescTable[slot].pinCount++;
     }
+    return 0;
 }
 
 BM_BufferMgr::~BM_BufferMgr() {
@@ -128,35 +95,71 @@ BM_BufferMgr::~BM_BufferMgr() {
 }
 
 
-char* BM_BufferMgr::GetPage(int fd, int pageNum) {
+RC BM_BufferMgr::GetPage(int fd, int pageNum, char *&ppointer){
     int slot;
     hashTable->Find(fd, pageNum, slot);
     if(slot != INVALID_SLOT) {
+        //如果Page已经被读入内存
         PageDescTable[slot].pinCount += 1;
-        return PageDescTable[slot].page_addr;
+        ppointer = PageDescTable[slot].page_addr;
+    } else {
+        //如果内存中没有该Page
+        if( InternalAlloc(slot) == BM_NO_FREE_BUF_WARNING ) return BM_NO_FREE_BUF_WARNING;
+        InitPageDesc(fd, pageNum, slot);
+        ReadPage(fd, pageNum, PageDescTable[slot].page_addr);
+        hashTable->Insert(fd, pageNum, slot);
+        PageDescTable[slot].pinCount++;
+        ppointer = PageDescTable[slot].page_addr;
     }
-    return NULL;
+    return 0;
 }
 
+RC BM_BufferMgr::InternalAlloc(int &slot) {
+    if(firstFree != INVALID_SLOT) {
+        slot = firstFree;
+        firstFree = PageDescTable[firstFree].next;
+        UsedLinkHead(slot);
+        return 0;
+    }
+    int _slot;
+    for(_slot = lastUsed; _slot != INVALID_SLOT; _slot = PageDescTable[_slot].prev) {
+        if(PageDescTable[_slot].pinCount == 0) {
+            if(PageDescTable[_slot].isdirty) {
+                int offset = PF_FILE_Hdr + PageDescTable[_slot].pageNum * pageSize;
+                lseek(PageDescTable[_slot].fd, offset, L_SET);
+                write(PageDescTable[_slot].fd, PageDescTable[_slot].page_addr, pageSize);
+                PageDescTable[_slot].isdirty = false;
+            }
+            hashTable->Delete(PageDescTable[_slot].fd, PageDescTable[_slot].pageNum);
+
+            UnlinkFromUsed(_slot);
+            UsedLinkHead(_slot);
+            slot = _slot;
+            return 0;
+        }
+    }
+
+    return BM_NO_FREE_BUF_WARNING;
+}
+
+RC BM_BufferMgr::InitPageDesc(int fd, int pageNum, int slot) {
+
+    PageDescTable[slot].fd = fd;
+    PageDescTable[slot].pageNum = pageNum;
+    PageDescTable[slot].isdirty = false;
+    PageDescTable[slot].pinCount = 0;
+    return 0;
+}
 
 RC BM_BufferMgr::UnPinPage(int fd, int pageNum) {
     int slot;
     hashTable->Find(fd, pageNum, slot);
     if(slot != INVALID_SLOT) {
-        PageDescTable[slot].pinCount -= 1;
+        if(PageDescTable[slot].pinCount > 0)
+            PageDescTable[slot].pinCount -= 1;
         return 0;
     }
     return -1;
-}
-
-RC BM_BufferMgr::FreePage(int fd, int pageNum) {
-    int slot;
-    hashTable->Find(fd, pageNum, slot);
-
-    UnlinkFromUsed(slot);
-    FreeLinkHead(slot);
-    hashTable->Delete(fd, pageNum);
-    return 0;
 }
 
 RC BM_BufferMgr::FreeLinkHead(int slot) {

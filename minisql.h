@@ -8,5 +8,6 @@
 
 
 typedef int RC; //函数返回的错误码，数字类型，　大于０为ｗａｒｎｉｎｇ，　小于０为ｅｒｒｏｒ，等于０表示没有错误
+#define success 0
 
 #endif 

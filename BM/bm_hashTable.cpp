@@ -1,5 +1,5 @@
 #include "bm_hashTable.h"
-#include "bm_error.h"
+#include "bm.h"
 
 BM_HashTable::BM_HashTable(int numOfBuckets) : numOfBuckets(numOfBuckets) {
     HashTable = (TableEntry **)calloc(this->numOfBuckets, sizeof(TableEntry *));
@@ -71,5 +71,5 @@ RC BM_HashTable::Delete(int fd, int pageNum) {
             return 0;
         }
     }
-    return SLOT_NOT_FOUND_WARNING;
+    return SLOT_NOT_FOUND;
 }

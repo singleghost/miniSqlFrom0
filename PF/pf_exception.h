@@ -5,7 +5,8 @@
 #ifndef MINISQLFROM0_PF_EXCEPTION_H
 #define MINISQLFROM0_PF_EXCEPTION_H
 
-
+#define FILE_OPEN_ERROR -1
+#define FILE_CREATE_ERROR -2
 class page_not_found_exception{
 
 };

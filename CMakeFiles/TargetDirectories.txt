@@ -1,0 +1,3 @@
+/Users/dddong/workspace/ClionProjects/miniSqlFrom0/CMakeFiles/edit_cache.dir
+/Users/dddong/workspace/ClionProjects/miniSqlFrom0/CMakeFiles/rebuild_cache.dir
+/Users/dddong/workspace/ClionProjects/miniSqlFrom0/CMakeFiles/miniSqlFrom0.dir

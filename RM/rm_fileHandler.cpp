@@ -5,9 +5,8 @@
 #include "rm.h"
 
 RC RM_FileHandler::GetRec(const RID &rid, RM_Record &rec) const {
-    PageHandler pHandler;
-    pf_fileHandler.GetThisPage(rid.getPageNum(), pHandler);
-    RM_PageHandler rm_pageHandler(pHandler, this->rm_fh);
+    RM_PageHandler rm_pageHandler;
+    GetThisPage(rid.getPageNum(), rm_pageHandler);
     if(rm_pageHandler.GetRecord(rid.getSlot(), rec) == RECORD_NOT_IN_USE ) return RECORD_NOT_IN_USE;
     return 0;
 }
@@ -19,22 +18,23 @@ RC RM_FileHandler::InsertRec(char *pData, RID &rid) {
     bool hasNextPage = true;
     while(hasNextPage) {
         try {
-            pf_fileHandler.GetNextPage(page, pf_pageHandler);
+            GetNextPage(page, rm_pageHandler);
         } catch (page_not_found_exception) {
             hasNextPage = false;
             continue;
         }
-        rm_pageHandler = RM_PageHandler(pf_pageHandler, rm_fh);
         if(rm_pageHandler.HasFreeSpace()) {
             rm_pageHandler.InsertRecord(pData, rid);
+            return 0;
         }
-        page = pf_pageHandler.GetPageNum();
+        page = rm_pageHandler.GetPageNum();
     }
     //如果所有Page都没有空间插入了
 
     AllocatePage(rm_pageHandler);
+    rm_pageHandler.InitPage();
     rm_pageHandler.InsertRecord(pData, rid);
-    MarkDirty(page);
+    MarkDirty(rm_pageHandler.GetPageNum());
     return 0;
 }
 
@@ -42,10 +42,9 @@ RC RM_FileHandler::UpdateRec(const RM_Record &rec) {
     char *pNewRec = rec.GetContent();
     RID rid = rec.GetRid();
     int page = rid.getPageNum();
-    int slot = rid.getSlot();
     RM_PageHandler rm_pageHandler;
     if( GetThisPage(page, rm_pageHandler) == PAGE_NOT_IN_USE) return PAGE_NOT_IN_USE;
-    rm_pageHandler.UpdataRecord(pNewRec, rid);
+    rm_pageHandler.UpdateRecord(pNewRec, rid);
 
     MarkDirty(page);
     return 0;
@@ -57,6 +56,11 @@ RC RM_FileHandler::DeleteRec(const RID &rid) {
     RM_PageHandler rm_pageHandler;
     if( GetThisPage(page, rm_pageHandler) == PAGE_NOT_IN_USE) return PAGE_NOT_IN_USE;
     rm_pageHandler.DeleteRecord(slot);
+//    printf("%d\n", rm_pageHandler.rm_pageHeader.NumOfRecords);    调试用
+    if(rm_pageHandler.rm_pageHeader.NumOfRecords == 0) {
+        printf("Disposing page\n");
+        DisposePage(rm_pageHandler.GetPageNum());
+    }
     MarkDirty(page);
 
     return 0;
@@ -66,22 +70,33 @@ RC RM_FileHandler::AllocatePage(RM_PageHandler &rm_pageHandler) {
     PageHandler pf_pageHandler;
     pf_fileHandler.AllocatePage(pf_pageHandler);
     rm_pageHandler = RM_PageHandler(pf_pageHandler, rm_fh);
+
     rm_pageHandler.InitPage();
     return 0;
 }
 
-RC RM_FileHandler::GetThisPage(int pageNum, RM_PageHandler &rm_pageHandler) {
-    PageHandler pageHandler;
-    if( pf_fileHandler.GetThisPage(pageNum, pageHandler) == PAGE_NOT_IN_USE)
+RC RM_FileHandler::GetThisPage(int pageNum, RM_PageHandler &rm_pageHandler) const{
+    PageHandler pf_pageHandler;
+    if( pf_fileHandler.GetThisPage(pageNum, pf_pageHandler) == PAGE_NOT_IN_USE)
         return PAGE_NOT_IN_USE;
-    char *p = pageHandler.GetDataPtr();
-    rm_pageHandler = RM_PageHandler(pageHandler, rm_fh);
-    memcpy(&rm_pageHandler.rm_pageHeader, p, sizeof(pageHeader));
+    rm_pageHandler = RM_PageHandler(pf_pageHandler, rm_fh);
 
     return 0;
 }
 
+//将page写回磁盘,默认参数为-1,写回所有dirty page
 void RM_FileHandler::ForcePages(int pageNum) const {
     pf_fileHandler.ForcePages(pageNum);
 }
 
+RC RM_FileHandler::GetNextPage(int pageNum, RM_PageHandler &rm_pageHandler) const{
+    PageHandler pf_pageHandler;
+    pf_fileHandler.GetNextPage(pageNum, pf_pageHandler);
+    rm_pageHandler = RM_PageHandler(pf_pageHandler, rm_fh);
+}
+
+//释放某一页
+RC RM_FileHandler::DisposePage(int pageNum) {
+    pf_fileHandler.DisposePage(pageNum);
+    return 0;
+}

@@ -13,21 +13,25 @@
 //PF_Manager
 
 RC PF_Manager::CreateFile(string filename) {
-    FILE *fp = fopen(filename.c_str(), "w");
+    int fd = open(filename.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0666);
+    if(fd < 0)
+        return FILE_CREATE_ERROR;
     char fileHeaderPage[PAGE_SIZE];
     fileHeader *fh = (fileHeader *) fileHeaderPage;
     fh->firstFreePage = PAGELISTEND;
     fh->numOfPages = 0;
 
-    fwrite(fileHeaderPage, 1, PAGE_SIZE, fp);
-    fclose(fp);
+    lseek(fd, 0, L_SET);
+    write(fd, fileHeaderPage, PAGE_SIZE);
+    close(fd);
     return 0;
 }
 
 
 RC PF_Manager::OpenFile(string filename, FileHandler &fhdl){
-    fhdl.fd = open(filename.c_str(), O_RDWR);
-    if(fhdl.fd < 0) return -1;
+    fhdl.fd = open(filename.c_str(), O_RDWR, 0666);
+    if(fhdl.fd < 0) return FILE_OPEN_ERROR;
+        lseek(fhdl.fd, 0, L_SET);
     read(fhdl.fd, (char *) &fhdl.fh, sizeof(fileHeader));
     fhdl.bufferMgr = this->bufferMgr;
     return 0;

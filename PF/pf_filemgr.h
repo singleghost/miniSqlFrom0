@@ -58,8 +58,8 @@ class FileHandler
 {
     friend class PF_Manager;
 private:
-    fileHeader fh;  //文件头
     int fd;         //文件描述符
+    fileHeader fh;  //文件头
     BM_BufferMgr *bufferMgr;
     bool bFileHeaderChanged;    //标志文件头是否被改变
 
@@ -79,6 +79,9 @@ public:
     RC MarkDirty      (int pageNum) const;             // page上无论什么地方有改动都要mark dirty
     RC UnpinPage      (int pageNum) const;             // 将page的pinCount减一
     RC ForcePages     (int pageNum = ALL_PAGES) const; // Write dirty page(s) to disk, 默认参数写回所有dirty page
+
+    //getter and setter
+    int getFd() const { return fd; }
 
     //测试用函数
     int GetNumOfPages() const { return fh.numOfPages; } //返回文件有多少页,包括空闲和使用中的

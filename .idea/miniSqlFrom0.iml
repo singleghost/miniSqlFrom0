@@ -3,13 +3,17 @@
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/PF/pf_filemgr.cpp" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/PF/pf_test.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/PF/pf_exception.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/PF/pf_filemgr.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/BM/bm_hashTable.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/BM/bm_buffermgr.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/BM/bm_hashTable.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/BM/bm_buffermgr.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/RM/rm_fileHandler.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/RM/rm.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/RM/rm.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/RM/rm_test.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/RM/rm_pageHandler.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/CMakeLists.txt" isTestSource="false" />
     </content>
     <orderEntry type="sourceFolder" forTests="false" />

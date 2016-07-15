@@ -9,11 +9,12 @@
       <sourceFolder url="file://$MODULE_DIR$/BM/bm_buffermgr.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/BM/bm_hashTable.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/BM/bm_buffermgr.cpp" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/RM/rm_fileHandler.cpp" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/RM/rm.cpp" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/RM/rm.h" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/RM/rm_test.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/RM/rm_pageHandler.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/RM/rm.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/RM/rm.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/RM/rm_fileHandler.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/RM/rm_fileScan.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/RM/rm_fileScan_test.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/CMakeLists.txt" isTestSource="false" />
     </content>
     <orderEntry type="sourceFolder" forTests="false" />

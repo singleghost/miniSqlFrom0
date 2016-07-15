@@ -6,8 +6,13 @@
 
 RC RM_FileHandler::GetRec(const RID &rid, RM_Record &rec) const {
     RM_PageHandler rm_pageHandler;
-    GetThisPage(rid.getPageNum(), rm_pageHandler);
-    if(rm_pageHandler.GetRecord(rid.getSlot(), rec) == RECORD_NOT_IN_USE ) return RECORD_NOT_IN_USE;
+    int page = rid.getPageNum();
+    GetThisPage(page, rm_pageHandler);
+    if(rm_pageHandler.GetRecord(rid.getSlot(), rec) == RECORD_NOT_IN_USE ) {
+        UnpinPage(page);
+        return RECORD_NOT_IN_USE;
+    }
+    UnpinPage(page);    //与GetTHisPage相对应
     return 0;
 }
 
@@ -25,18 +30,24 @@ RC RM_FileHandler::InsertRec(char *pData, RID &rid) {
         }
         if(rm_pageHandler.HasFreeSpace()) {
             rm_pageHandler.InsertRecord(pData, rid);
+            UnpinPage(rm_pageHandler.GetPageNum());
+            MarkDirty(rm_pageHandler.GetPageNum());
             return 0;
         }
         page = rm_pageHandler.GetPageNum();
+        UnpinPage(page);
     }
     //如果所有Page都没有空间插入了
 
     AllocatePage(rm_pageHandler);
     rm_pageHandler.InitPage();
     rm_pageHandler.InsertRecord(pData, rid);
+
+    UnpinPage(rm_pageHandler.GetPageNum());
     MarkDirty(rm_pageHandler.GetPageNum());
     return 0;
 }
+
 
 RC RM_FileHandler::UpdateRec(const RM_Record &rec) {
     char *pNewRec = rec.GetContent();
@@ -47,6 +58,7 @@ RC RM_FileHandler::UpdateRec(const RM_Record &rec) {
     rm_pageHandler.UpdateRecord(pNewRec, rid);
 
     MarkDirty(page);
+    UnpinPage(page);
     return 0;
 }
 
@@ -58,11 +70,10 @@ RC RM_FileHandler::DeleteRec(const RID &rid) {
     rm_pageHandler.DeleteRecord(slot);
 //    printf("%d\n", rm_pageHandler.rm_pageHeader.NumOfRecords);    调试用
     if(rm_pageHandler.rm_pageHeader.NumOfRecords == 0) {
-        printf("Disposing page\n");
         DisposePage(rm_pageHandler.GetPageNum());
     }
     MarkDirty(page);
-
+    UnpinPage(page);
     return 0;
 }
 
@@ -93,10 +104,15 @@ RC RM_FileHandler::GetNextPage(int pageNum, RM_PageHandler &rm_pageHandler) cons
     PageHandler pf_pageHandler;
     pf_fileHandler.GetNextPage(pageNum, pf_pageHandler);
     rm_pageHandler = RM_PageHandler(pf_pageHandler, rm_fh);
+    return 0;
 }
 
 //释放某一页
 RC RM_FileHandler::DisposePage(int pageNum) {
     pf_fileHandler.DisposePage(pageNum);
     return 0;
+}
+
+void RM_FileHandler::UnpinPage(int pageNum)const {
+    pf_fileHandler.UnpinPage(pageNum);
 }

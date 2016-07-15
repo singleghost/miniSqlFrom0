@@ -5,9 +5,29 @@
 #define PAGE_SIZE 4096
 #define PAGE_NUM_MAX 50
 #define PF_FILE_Hdr 4096
-
+#define MAX_STRING_LENGTH 255   //attrType为字符串时最长的字符串大小
 
 typedef int RC; //函数返回的错误码，数字类型，　大于０为ｗａｒｎｉｎｇ，　小于０为ｅｒｒｏｒ，等于０表示没有错误
 #define success 0
 
+
+enum AttrType{
+    INT,
+    FLOAT,
+    STRING
+};
+
+enum CompOp {
+    EQ_OP,
+    LT_OP,
+    LE_OP,
+    GT_OP,
+    GE_OP,
+    NE_OP,
+    NO_OP
+};
+
+enum ClientHint {
+    NO_HINT
+};
 #endif 

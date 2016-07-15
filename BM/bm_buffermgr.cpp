@@ -156,7 +156,7 @@ RC BM_BufferMgr::UnPinPage(int fd, int pageNum) {
     hashTable->Find(fd, pageNum, slot);
     if(slot != INVALID_SLOT) {
         if(PageDescTable[slot].pinCount > 0)
-            PageDescTable[slot].pinCount -= 1;
+            PageDescTable[slot].pinCount -= 1;   //直接置0, 目前不懂pin的实际用处
         return 0;
     }
     return -1;
@@ -211,10 +211,10 @@ void BM_BufferMgr::WritePage(int fd, int pageNum, char *src) {
 }
 
 void BM_BufferMgr::PrintPageDescTable() {
-    printf("next\tprev\tpinCount\tisDirty\tPageNum\tfd\tpageContent\n");
+    printf("next\tprev\tpinCount\tisDirty\tPageNum\tfd\n");
     for(int i = 0; i < numOfPages; i++) {
-        printf("%4d\t%4d\t%8d\t%7d\t%7d\t%2d\t%11s", PageDescTable[i].next,
+        printf("%4d\t%4d\t%8d\t%7d\t%7d\t%2d\t\n", PageDescTable[i].next,
                PageDescTable[i].prev, PageDescTable[i].pinCount, PageDescTable[i].isdirty, PageDescTable[i].pageNum,
-               PageDescTable[i].fd, PageDescTable[i].page_addr);
+               PageDescTable[i].fd);
     }
 }

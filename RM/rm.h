@@ -14,6 +14,8 @@
 
 //返回码
 #define RECORD_NOT_IN_USE -1
+#define RM_EOF -2
+#define RM_PAGE_RECORD_EOF -3
 
 struct RM_PageHeader {
     int firstFreeRec;   //第一个空闲的record的位置
@@ -65,6 +67,7 @@ public:
 
 class RM_PageHandler {
     friend class RM_FileHandler;
+    friend class RM_FileScan;
 private:
     PageHandler pf_pageHandler; //封装了底层的PF模块的PageHandler
     RM_PageHeader rm_pageHeader;    //RM模块的页头
@@ -85,7 +88,7 @@ private:
     int GetPageNum() { return pf_pageHandler.GetPageNum(); }
     //free list相关的操作
     int GetNextFreeSlot(int slot);  //获取下一个空闲的槽位
-
+    RC GetNextRecord(int cur_slot, RM_Record &rec);
 public:
     RM_PageHandler() : recordSize(-1) {}    //默认构造函数
     RM_PageHandler(PageHandler &ph, RM_FileHeader rm_fileHeader);
@@ -100,6 +103,7 @@ public:
 
 class RM_FileHandler {
     friend class RM_Manager;
+    friend class RM_FileScan;
 private:
     int fd; //文件描述符
     bool bHeaderModified;   //RM模块的文件头是否被修改
@@ -111,6 +115,7 @@ private:
     RC GetThisPage(int pageNum, RM_PageHandler &rm_pageHandler) const;  //得到某一个Page
     RC GetNextPage(int pageNum, RM_PageHandler &rm_pageHandler) const;  //得到下一个Page
     void MarkDirty(int pageNum) { pf_fileHandler.MarkDirty(pageNum); }
+    void UnpinPage(int pageNum)const;
 
 public:
     RM_FileHandler() {}
@@ -143,4 +148,40 @@ public:
 };
 
 
+class RM_FileScan {
+
+private:
+    RM_FileHandler rm_fileHandler;
+    AttrType attrType;
+    int attrLength;
+    int attrOffset;
+    CompOp compOp;
+    void *value;
+    ClientHint pinHint;
+
+    RID cur_rid;    //当前Scan到的record的RID
+    bool bScanIsOpen;
+    bool (*comparator) (void * , void *, AttrType, int);
+
+public:
+    RM_FileScan() {}
+    ~RM_FileScan() {}
+    RC OpenScan(const RM_FileHandler &rm_fileHandler,
+                AttrType attrType,
+                int attrLength,
+                int attrOffset,
+                CompOp compOp,
+                void *value,
+                ClientHint pinHint=NO_HINT);
+    RC GetNextRec(RM_Record &rec);  //得到下一个匹配的record,当没有record符合条件时返回RM_EOF
+    RC CloseScan();                 //关闭scan
+};
+
+//一些全局函数
+bool less_than(void *value1, void *value2, AttrType attrType, int attrLength);
+bool less_than_or_equal(void *value1, void *value2, AttrType attrType, int attrLength);
+bool greater_than(void *value1, void *value2, AttrType attrType, int attrLength);
+bool greater_than_or_equal(void *value1, void *value2, AttrType attrType, int attrLength);
+bool equal(void *value1, void *value2, AttrType attrType, int attrLength);
+bool not_equal(void *value1, void *value2, AttrType attrType, int attrLength);
 #endif //MINISQLFROM0_RM_MANAGER_H

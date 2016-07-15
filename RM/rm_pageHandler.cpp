@@ -14,7 +14,7 @@ RM_PageHandler::RM_PageHandler(PageHandler &ph, RM_FileHeader rm_fileHeader){
 }
 
 RC RM_PageHandler::GetRecord(int slot, RM_Record &rec) {
-    assert(slot < rm_pageHeader.NumOfRecords);
+    assert(slot < nMaxRecordPerPage);
     if(!isRecordInUse(slot))
         return RECORD_NOT_IN_USE;
     else {
@@ -73,3 +73,14 @@ void RM_PageHandler::InitPage() {
     *(int *)(&pData[(i - 1) * (recordSize + 1) + 1]) = RECORD_FREE_LIST_END;
 }
 
+RC RM_PageHandler::GetNextRecord(int cur_slot, RM_Record &rec) {
+    int slot;
+    int rc;
+    for(slot = cur_slot + 1; slot < nMaxRecordPerPage; slot++) {
+        if( (rc = GetRecord(slot, rec)) == RECORD_NOT_IN_USE ) {
+            continue;
+        }
+        else return 0;
+    }
+    return RM_PAGE_RECORD_EOF;
+}

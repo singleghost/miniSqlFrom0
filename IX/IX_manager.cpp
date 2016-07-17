@@ -1,0 +1,65 @@
+//
+// Created by 谢俊东 on 16/7/17.
+//
+
+#include <sstream>
+#include <fcntl.h>
+#include <sys/file.h>
+#include <zconf.h>
+#include "ix.h"
+
+RC IX_Manager::CreateIndex(string filename, int indexNo, AttrType attrType, int attrLength) {
+    stringstream ss;
+    ss << indexNo;
+    string ext;
+    ss >> ext;
+    pfm.CreateFile(filename + "." + ext);
+
+    int fd = open(filename.c_str(), O_RDWR, 0666);
+    if(fd < 0) return FILE_OPEN_ERROR;
+    lseek(fd, sizeof(fileHeader), L_SET);
+    IX_fileHeader ix_fileHeader;
+    ix_fileHeader.attrType = attrType;
+    ix_fileHeader.attrLength = attrLength;
+    ix_fileHeader.IndexNo = indexNo;
+    ix_fileHeader.rootNode = -1;
+    ix_fileHeader.nMaxPtrLeafPage = (PAGE_SIZE - sizeof(pageHeader) - sizeof(IX_pageHeader))/ (1 + attrLength + sizeof(RID));
+    ix_fileHeader.nMaxPtrInteriorPage = (PAGE_SIZE - sizeof(pageHeader) - sizeof(IX_pageHeader)) / (sizeof(PagePointer) + attrLength);
+    write(fd, &ix_fileHeader, sizeof(IX_fileHeader));
+    close(fd);
+    return 0;
+}
+
+RC IX_Manager::OpenIndex(string filename, int indexNo, IX_IndexHandler &ix_handler) {
+    stringstream ss;
+    ss << indexNo;
+    string ext;
+    ss >> ext;
+    FileHandler fileHandler;
+    pfm.OpenFile(filename + "." + ext, fileHandler);
+    ix_handler.pf_fileHandler = fileHandler;
+    ix_handler.fd = fileHandler.getFd();
+    lseek(ix_handler.fd, sizeof(fileHeader), L_SET);
+    read(ix_handler.fd, &ix_handler.ix_fh, sizeof(IX_fileHeader));
+
+    return 0;
+}
+
+RC IX_Manager::CloseIndex(IX_IndexHandler &ix_handler) {
+
+    if(ix_handler.bHeaderModified) {
+        lseek(ix_handler.fd, sizeof(fileHeader), L_SET);
+        write(ix_handler.fd, &ix_handler.ix_fh, sizeof(IX_fileHeader));
+    }
+    pfm.CloseFile(ix_handler.pf_fileHandler);
+    return 0;
+}
+
+RC IX_Manager::DestroyIndex(string filename, int indexNo) {
+    stringstream ss;
+    ss << indexNo;
+    string ext;
+    ss >> ext;
+    //将indexNo转换为string作为文件的扩展名
+    return pfm.DestroyFile(filename + "." + ext);
+}

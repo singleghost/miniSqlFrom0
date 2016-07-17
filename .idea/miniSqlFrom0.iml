@@ -9,13 +9,18 @@
       <sourceFolder url="file://$MODULE_DIR$/BM/bm_buffermgr.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/BM/bm_hashTable.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/BM/bm_buffermgr.cpp" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/RM/rm_pageHandler.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/RM/rm_fileScan.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/RM/rm_fileHandler.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/RM/rm.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/RM/rm.cpp" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/RM/rm_fileHandler.cpp" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/RM/rm_fileScan.cpp" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/RM/rm_fileScan_test.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/RM/rm_pageHandler.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/CMakeLists.txt" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/IX/ix.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/IX/ix_IndexHandler.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/IX/ix_Key.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/IX/IX_pageHandler.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/IX/IX_manager.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/IX/ix_test.cpp" isTestSource="false" />
     </content>
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module-library">

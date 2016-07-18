@@ -64,6 +64,7 @@ int RM_PageHandler::GetNextFreeSlot(int slot) {
 void RM_PageHandler::InitPage() {
     rm_pageHeader.NumOfRecords = 0;
     rm_pageHeader.firstFreeRec = 0;
+    memcpy(pf_pageHandler.GetDataPtr(), &rm_pageHeader, sizeof(RM_PageHeader));
     char *pData = GetDataPtr();
     int i;
     for(i = 0; i < nMaxRecordPerPage; i++) {

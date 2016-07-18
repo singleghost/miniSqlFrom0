@@ -2,6 +2,24 @@
 // Created by 谢俊东 on 16/7/17.
 //
 #include "ix.h"
+
+Key::Key(const Key &key) {
+    this->attrType = key.attrType;
+    this->attrLength = key.attrLength;
+    this->ptr = new char[attrLength];
+}
+
+Key& Key::operator=(const Key &key) {
+    if(this == &key) {
+        return *this;
+    } else {
+        if(this->ptr) delete [] this->ptr;
+        this->attrLength = key.attrLength;
+        this->attrType = key.attrType;
+        this->ptr = new char[attrLength];
+    }
+
+}
 bool Key::operator==(const Key &key1) const
 {
         switch (attrType) {

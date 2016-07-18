@@ -13,9 +13,10 @@ RC IX_Manager::CreateIndex(string filename, int indexNo, AttrType attrType, int 
     ss << indexNo;
     string ext;
     ss >> ext;
-    pfm.CreateFile(filename + "." + ext);
+    string real_name = filename + "." + ext;
+    pfm.CreateFile(real_name);
 
-    int fd = open(filename.c_str(), O_RDWR, 0666);
+    int fd = open(real_name.c_str(), O_RDWR, 0666);
     if(fd < 0) return FILE_OPEN_ERROR;
     lseek(fd, sizeof(fileHeader), L_SET);
     IX_fileHeader ix_fileHeader;
@@ -23,8 +24,8 @@ RC IX_Manager::CreateIndex(string filename, int indexNo, AttrType attrType, int 
     ix_fileHeader.attrLength = attrLength;
     ix_fileHeader.IndexNo = indexNo;
     ix_fileHeader.rootNode = -1;
-    ix_fileHeader.nMaxPtrLeafPage = (PAGE_SIZE - sizeof(pageHeader) - sizeof(IX_pageHeader))/ (1 + attrLength + sizeof(RID));
-    ix_fileHeader.nMaxPtrInteriorPage = (PAGE_SIZE - sizeof(pageHeader) - sizeof(IX_pageHeader)) / (sizeof(PagePointer) + attrLength);
+    ix_fileHeader.nMaxPtrLeafPage = (PAGE_SIZE - sizeof(pageHeader) - sizeof(IX_pageHeader))/ (attrLength + sizeof(RID)) - 1;//故意减一,留出一个空位,简化算法
+    ix_fileHeader.nMaxPtrInteriorPage = (PAGE_SIZE - sizeof(pageHeader) - sizeof(IX_pageHeader)) / (sizeof(PagePtr) + attrLength) - 1;//故意减一,留出一个空位,简化算法
     write(fd, &ix_fileHeader, sizeof(IX_fileHeader));
     close(fd);
     return 0;
@@ -35,8 +36,9 @@ RC IX_Manager::OpenIndex(string filename, int indexNo, IX_IndexHandler &ix_handl
     ss << indexNo;
     string ext;
     ss >> ext;
+    string real_name = filename + "." + ext;
     FileHandler fileHandler;
-    pfm.OpenFile(filename + "." + ext, fileHandler);
+    pfm.OpenFile(real_name, fileHandler);
     ix_handler.pf_fileHandler = fileHandler;
     ix_handler.fd = fileHandler.getFd();
     lseek(ix_handler.fd, sizeof(fileHeader), L_SET);

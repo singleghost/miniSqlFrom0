@@ -47,10 +47,6 @@ int IX_IndexHandler::Insert_into_Leaf(int page, const Key &key, const RID &rid) 
         ix_PH.ix_pageHeader.nCurPtrs /= 2;
         ix_newLeafPH.ix_pageHeader.nCurPtrs = nEntries - ix_PH.ix_pageHeader.nCurPtrs;
 
-//        for (int i = nEntries / 2; i < nEntries; i++)
-//            ix_newLeafPH.leafNode.entries.push_back(ix_PH.leafNode.entries[i]);
-//        ix_PH.leafNode.entries.resize(nEntries / 2);   //缩小到一半
-
         IX_PageHandler ix_parentPH;
         if (ix_PH.ix_pageHeader.parentNode != NO_PARENT_NODE) {
             //如果存在parent node
@@ -96,17 +92,9 @@ int IX_IndexHandler::Insert_into_interior(int target_page, const Key &key, PageP
         //更新两个Node的当前指针数
         ix_pageHdlr.ix_pageHeader.nCurPtrs = mid;
         ix_newPageHdlr.ix_pageHeader.nCurPtrs = total - mid;
-//        int mid = ix_pageHdlr.interNode.keys.size() / 2;
-//        for (i = mid + 1; i < ix_pageHdlr.interNode.keys.size(); i++) {
-//            ix_newPageHdlr.interNode.keys.push_back(ix_pageHdlr.interNode.keys[i]);
-//        }
-//        ix_pageHdlr.interNode.keys.resize(mid);
-//        for (i = mid + 1; i < ix_pageHdlr.interNode.pointers.size(); i++) {
-//            ix_newPageHdlr.interNode.pointers.push_back(ix_pageHdlr.interNode.pointers[i]);
-//        }
-//        ix_pageHdlr.interNode.pointers.resize(mid + 1);
         MarkDirty(ix_newPageHdlr.GetPageNum());
         UnpinPage(ix_newPageHdlr.GetPageNum());
+
         IX_PageHandler parentPH;
         if (ix_pageHdlr.GetParentNode() == NO_PARENT_NODE) {
             AllocatePage(parentPH);
@@ -159,3 +147,7 @@ RC IX_IndexHandler::AllocatePage(IX_PageHandler &ix_pageHandler) {
     ix_pageHandler.ix_pageHeader.nCurPtrs = 0;
 }
 
+
+RC IX_IndexHandler::DeleteEntry(void *pData, const RID &rid) {
+    
+}

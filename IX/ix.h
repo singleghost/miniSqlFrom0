@@ -18,6 +18,7 @@ typedef int PagePtr;
 //返回码
 #define IX_PAGE_NOT_IN_USE -1
 
+//数据结构
 struct IX_fileHeader {
     int IndexNo;    //SM模块保存Index信息数组的下标,里面会有index的属性名等等
     AttrType attrType;
@@ -33,7 +34,6 @@ struct IX_pageHeader {
     PagePtr parentNode; //指向父节点
     PagePtr nextNode;   //pageType为leaf时此字段有效,指向链表中的下一个leaf page, -1表示链表结尾
 };
-//数据结构
 
 //存放每个Entry的值
 class Key {
@@ -55,17 +55,6 @@ public:
     bool operator>=(const Key &key1) const;
     bool operator<=(const Key &key1) const;
     bool operator!=(const Key &key1) const;
-};
-//叶节点
-struct LeafNode {
-    vector< pair<Key, RID>> entries;
-//    PagePtr nextPage;
-};
-
-//内部节点
-struct InternalNode {
-    vector<Key> keys;   //值
-    vector<PagePtr> pointers;   //指针
 };
 
 

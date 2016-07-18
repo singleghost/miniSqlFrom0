@@ -22,26 +22,6 @@ leaf_entry_size(attrLength + sizeof(RID)), interior_entry_size(sizeof(PagePtr) +
     this->nMaxPtrInteriorPage = (PAGE_SIZE - sizeof(pageHeader) - sizeof(IX_pageHeader)) / (sizeof(PagePtr) + attrLength) - 1;//故意减一,留出一个空位,简化算法
 
     memcpy(&this->ix_pageHeader, this->pf_pageHandler.GetDataPtr(), sizeof(IX_pageHeader));
-//    char *pData = GetDataPtr();
-//    if(ix_pageHeader.pageType == LeafPage) {
-//        RID rid;
-//        for(int i = 0; i < ix_pageHeader.nCurPtrs; i++) {
-//            Key k((&pData[i * leaf_entry_size]), attrType, attrLength);
-//            rid = *reinterpret_cast<RID *>(&pData[i *(1 + attrLength + sizeof(RID)) + (1 + attrLength)]);
-//            pair<Key, RID> p(k, rid);
-//            leafNode.entries.push_back(p);
-//
-//        }
-//    } else if(ix_pageHeader.pageType == InteriorPage) {
-//        for(int i = 0; i < ix_pageHeader.nCurPtrs; i++) {
-//            PagePtr pp = *(PagePtr *)(&pData[i * (1 + sizeof(PagePtr) + attrLength)]);
-//            interNode.pointers.push_back(pp);
-//            if(i < ix_pageHeader.nCurPtrs - 1) {
-//                Key k((&pData[i * (1 + sizeof(PagePtr) + attrLength) + (1 + sizeof(PagePtr))]), attrType, attrLength);
-//                interNode.keys.push_back(k);
-//            }
-//        }
-//    }
 }
 
 void IX_PageHandler::InsertLeafEntry(const Key &key, const RID &rid) {
@@ -57,24 +37,6 @@ void IX_PageHandler::InsertLeafEntry(const Key &key, const RID &rid) {
             InsertLeafEntryToLoc(i + 1, key, rid);
         }
     }
-//    vector< pair<Key, RID>>::iterator iter;
-//    if(leafNode.entries.empty()) {  //如果leafNode为空
-//        pair<Key, RID> entry(key, rid);
-//        leafNode.entries.push_back(entry);
-//        return;
-//    }
-//    if(key < leafNode.entries[0].first) {   //如果小于第一个entry
-//        pair<Key, RID> entry(key, rid);
-//        leafNode.entries.insert(leafNode.entries.begin(), entry);
-//        return;
-//    }
-//    for(iter = leafNode.entries.begin(); iter != leafNode.entries.end(); iter++) {
-//        if( key >= (*iter).first ) {
-//                pair<Key, RID> entry(key, rid);
-//                leafNode.entries.insert(++iter, entry);
-//                return;
-//        }
-//    }
 }
 
 void IX_PageHandler::InsertInteriorEntry(const Key &key, PagePtr page) {
@@ -93,29 +55,6 @@ void IX_PageHandler::InsertInteriorEntry(const Key &key, PagePtr page) {
         }
         //相等的情况不考虑,暂时只实现unique属性的索引
     }
-//    if(interNode.keys.empty()) {
-//        interNode.keys.push_back(key);
-//        interNode.pointers.push_back(page);
-//        return;
-//    }
-//    vector<Key>::iterator iter;
-//    int i = 0;
-//    for(iter = interNode.keys.begin(); iter != interNode.keys.end(); iter++, i++) {
-//        if( key > *iter) {
-//            if(key == *iter) {
-//                //相等的情况单独考虑
-//            } else {
-//                interNode.keys.insert(++iter, key);
-//            }
-//        }
-//    }
-//    vector<PagePtr>::iterator pp_iter;
-//    int j = 0;
-//    for(pp_iter = interNode.pointers.begin(); pp_iter != interNode.pointers.end(); pp_iter++, j++) {
-//        if(j == i + 1) {
-//            interNode.pointers.insert(++pp_iter, page);
-//        }
-//    }
 }
 void IX_PageHandler::InitPage(PagePtr parentNode, PagePtr nextNode, IX_pageType pageType){
     this->ix_pageHeader.nCurPtrs = 0;

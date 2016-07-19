@@ -19,6 +19,7 @@
       <sourceFolder url="file://$MODULE_DIR$/IX/ix_IndexHandler.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/IX/ix_Key.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/IX/IX_pageHandler.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/IX/ix_IndexScan.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/IX/IX_manager.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/IX/ix_test.cpp" isTestSource="false" />
     </content>

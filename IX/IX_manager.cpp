@@ -24,8 +24,11 @@ RC IX_Manager::CreateIndex(string filename, int indexNo, AttrType attrType, int 
     ix_fileHeader.attrLength = attrLength;
     ix_fileHeader.IndexNo = indexNo;
     ix_fileHeader.rootNode = -1;
-    ix_fileHeader.nMaxPtrLeafPage = (PAGE_SIZE - sizeof(pageHeader) - sizeof(IX_pageHeader))/ (attrLength + sizeof(RID)) - 1;//故意减一,留出一个空位,简化算法
-    ix_fileHeader.nMaxPtrInteriorPage = (PAGE_SIZE - sizeof(pageHeader) - sizeof(IX_pageHeader)) / (sizeof(PagePtr) + attrLength) - 1;//故意减一,留出一个空位,简化算法
+//    ix_fileHeader.nMaxPtrLeafPage = (PAGE_SIZE - sizeof(pageHeader) - sizeof(IX_pageHeader))/ (attrLength + sizeof(RID)) - 1;//故意减一,留出一个空位,简化算法
+//    ix_fileHeader.nMaxPtrInteriorPage = (PAGE_SIZE - sizeof(pageHeader) - sizeof(IX_pageHeader)) / (sizeof(PagePtr) + attrLength) - 1;//故意减一,留出一个空位,简化算法
+    //调试用
+    ix_fileHeader.nMaxPtrInteriorPage = 5;
+    ix_fileHeader.nMaxPtrLeafPage = 50;
     write(fd, &ix_fileHeader, sizeof(IX_fileHeader));
     close(fd);
     return 0;

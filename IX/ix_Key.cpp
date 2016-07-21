@@ -18,6 +18,7 @@ Key& Key::operator=(const Key &key) {
         this->attrType = key.attrType;
         this->ptr = new char[attrLength];
         memcpy(this->ptr, key.ptr, attrLength);
+        return *this;
     }
 
 }

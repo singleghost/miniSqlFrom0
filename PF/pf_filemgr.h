@@ -99,6 +99,9 @@ public:
     RC OpenFile(string filename, FileHandler &fh);  //打开文件, fileHandler指向被打开的文件
     RC CloseFile(FileHandler &fh);          //关闭文件
     RC DestroyFile(string filename);        //删除磁盘上的文件
+
+    //调试用
+    BM_BufferMgr *GetBufferManager() { return bufferMgr; }
 };
 
 #endif //MINISQLFROM0_PF_FILEMGR_H

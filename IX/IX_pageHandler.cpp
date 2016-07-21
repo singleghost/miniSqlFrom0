@@ -110,6 +110,7 @@ RC IX_PageHandler::DeleteLeafEntry(const Key &key) {
 }
 
 RC IX_PageHandler::Get_Loc_From_Key(CompOp compOp, Key &key, int &loc){
+    int i;
     switch (compOp) {
         case EQ_OP:
             for(int i = 0; i < ix_pageHeader.nCurPtrs; i++) {
@@ -120,39 +121,39 @@ RC IX_PageHandler::Get_Loc_From_Key(CompOp compOp, Key &key, int &loc){
             }
             break;
         case GT_OP:
-            for(int i = 0; i < ix_pageHeader.nCurPtrs; i++) {
-                if(key > GetLeafKey(i)) {
-                    loc = i + 1;
-                    return 0;
+            for(i = 0; i < GetnCurPtr(); i++) {
+                if(GetLeafKey(i) > key) {
+                    break;
                 }
             }
-            break;
+            loc = i;
+            return 0;
         case GE_OP:
-            for(int i = 0; i < ix_pageHeader.nCurPtrs; i++) {
-                if(key >= GetLeafKey(i)) {
-                    loc = i;
-                    return 0;
+            for(i = 0; i < GetnCurPtr(); i++) {
+                if(GetLeafKey(i) >= key) {
+                    break;
                 }
             }
-            break;
+            loc = i;
+            return 0;
         case LT_OP:
-            for(int i = 0; i < ix_pageHeader.nCurPtrs; i++) {
-                if(key < GetLeafKey(i)) {
-                    loc = i - 1;
-                    return 0;
+            for(i = GetnCurPtr(); i >= 0; i--) {
+                if(GetLeafKey(i) < key) {
+                    break;
                 }
             }
-            break;
+            loc = i;
+            return 0;
         case LE_OP:
-            for(int i = 0; i < ix_pageHeader.nCurPtrs; i++) {
-                if(key <= GetLeafKey(i)) {
-                    loc = i;
-                    return 0;
+            for(i = GetnCurPtr(); i >= 0; i--) {
+                if(GetLeafKey(i) <= key) {
+                    break;
                 }
             }
-            break;
+            loc = i;
+            return 0;
         default:
-            break;
+            return 0;
     }
     return IX_KEY_NOT_FOUND;
 }
@@ -160,17 +161,29 @@ RC IX_PageHandler::Get_Loc_From_Key(CompOp compOp, Key &key, int &loc){
 void IX_PageHandler::PrintLeafEntries() {
     printf("Leaf Page; PageNum: %d; parentNode: %d; nextNode: %d; prevNode: %d; nCurPtr: %d\n", GetPageNum(), GetParentNode(), ix_pageHeader.nextNode,
     ix_pageHeader.prevNode, GetnCurPtr());
-    printf("key\tpage\tslot\n");
-    for(int i = 0; i < GetnCurPtr(); i++) {
-        printf("%3d\t%4d\t%4d\n", *(int *)GetLeafKey(i).GetPtr(), GetLeafRID(i).getPageNum(), GetLeafRID(i).getSlot());
-    }
+//    printf("key\t\t\t\tpage\tslot\n");
+//    for(int i = 0; i < GetnCurPtr(); i++) {
+//        if(attrType == INT) {
+//            printf("%3d\t\t\t%4d\t%4d\n", *(int *)GetLeafKey(i).GetPtr(), GetLeafRID(i).getPageNum(), GetLeafRID(i).getSlot());
+//        } else if(attrType == FLOAT) {
+//            printf("%3f\t\t\t%4d\t%4d\n", *(float *)GetLeafKey(i).GetPtr(), GetLeafRID(i).getPageNum(), GetLeafRID(i).getSlot());
+//        } else if(attrType == STRING) {
+//            printf("%3s\t\t\t%4d\t%4d\n", (char *)GetLeafKey(i).GetPtr(), GetLeafRID(i).getPageNum(), GetLeafRID(i).getSlot());
+//
+//        }
+//    }
 }
 
 void IX_PageHandler::PrintInteriorEntries() {
     printf("Interior Page; PageNum: %d; parentNode: %d\n", GetPageNum(), GetParentNode());
     for(int i = 0; i < GetnCurPtr(); i++) {
         printf("%d | ", GetInteriorPtr(i));
-        if(i < GetnCurPtr() - 1) printf("%d | ", *(int *)GetInteriorKey(i).GetPtr());
+        if(i < GetnCurPtr() - 1) {
+            if(attrType == INT) printf("%d | ", *(int *)GetInteriorKey(i).GetPtr());
+            else if(attrType == FLOAT) printf("%f | ", *(float *)GetInteriorKey(i).GetPtr());
+            else if(attrType == STRING) printf("%s | ", (char *)GetInteriorKey(i).GetPtr());
+        }
     }
     printf("\n");
 }
+

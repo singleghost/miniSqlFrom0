@@ -23,7 +23,10 @@ RC IX_IndexHandler::InsertEntry(void *pData, const RID &rid) {
 
 int IX_IndexHandler::Insert_into_Leaf(int target_page, const Key &key, const RID &rid) {
     IX_PageHandler ix_PH;
-    if (GetThisPage(target_page, ix_PH) == PAGE_NOT_IN_USE) return PAGE_NOT_IN_USE;
+    if (GetThisPage(target_page, ix_PH) == PAGE_NOT_IN_USE) {
+        printf("page not in use\n");
+        return PAGE_NOT_IN_USE;
+    }
     if (ix_PH.GetnCurPtr() < ix_fh.nMaxPtrLeafPage) {
         //如果当前叶节点未满
         ix_PH.InsertLeafEntry(key, rid);
@@ -53,6 +56,7 @@ int IX_IndexHandler::Insert_into_Leaf(int target_page, const Key &key, const RID
             //如果存在parent node, 直接获取
             GetThisPage(ix_PH.GetParentNode(), ix_parentPH);
             ix_newLeafPH.setParentNode(ix_parentPH.GetPageNum());
+            UnpinPage(ix_parentPH.GetPageNum());
         } else {
             //如果不存在parent node,新建一个parentNode
 
@@ -63,14 +67,13 @@ int IX_IndexHandler::Insert_into_Leaf(int target_page, const Key &key, const RID
             setRootNode(ix_parentPH.GetPageNum());  //更新rootNode
             ix_PH.setParentNode(ix_parentPH.GetPageNum());
             ix_newLeafPH.setParentNode(ix_parentPH.GetPageNum());
-
+            MarkDirty(ix_parentPH.GetPageNum());
+            UnpinPage(ix_parentPH.GetPageNum());
         }
         MarkDirty(ix_newLeafPH.GetPageNum());
         UnpinPage(ix_newLeafPH.GetPageNum());
 
         Insert_into_Interior(ix_parentPH.GetPageNum(), mid_key, ix_newLeafPH.GetPageNum());
-        MarkDirty(ix_parentPH.GetPageNum());
-        UnpinPage(ix_parentPH.GetPageNum());
     }
     MarkDirty(ix_PH.GetPageNum());
     UnpinPage(ix_PH.GetPageNum());
@@ -87,8 +90,8 @@ int IX_IndexHandler::Insert_into_Interior(int target_page, const Key &key, PageP
     } else if (ix_pageHdlr.GetnCurPtr() >= ix_fh.nMaxPtrInteriorPage) {
         IX_PageHandler ix_newPageHdlr;
         AllocatePage(ix_newPageHdlr);    //分配一个新的Page
-        ix_newPageHdlr.InitPage(ix_pageHdlr.GetParentNode(), ix_pageHdlr.GetNextNode(), ix_pageHdlr.GetPageNum(),
-                                LeafPage);
+        ix_newPageHdlr.InitPage(ix_pageHdlr.GetParentNode(), NO_NEXT_NODE, NO_PREV_NODE,
+                                InteriorPage);
         //初始化新Page
         ix_pageHdlr.InsertInteriorEntry(key, pPage);
 
@@ -102,29 +105,35 @@ int IX_IndexHandler::Insert_into_Interior(int target_page, const Key &key, PageP
         //更新两个Node的当前指针数
         ix_pageHdlr.setCurPtr(mid + 1);
         ix_newPageHdlr.setCurPtr(total - (mid + 1));
-
+        UpdateParentPtrOfChildNode(ix_newPageHdlr);
 
         IX_PageHandler parentPH;
         if (ix_pageHdlr.GetParentNode() == NO_PARENT_NODE) {
             AllocatePage(parentPH);
-            parentPH.InitPage(NO_PARENT_NODE, -1, -1, InteriorPage);
+            parentPH.InitPage(NO_PARENT_NODE, NO_NEXT_NODE, NO_PREV_NODE, InteriorPage);
             *(PagePtr *)parentPH.GetDataPtr() = ix_pageHdlr.GetPageNum();
-            ix_fh.rootNode = parentPH.GetPageNum();
+            parentPH.increaseCurPtr();
+
+            setRootNode(parentPH.GetPageNum());
             ix_pageHdlr.setParentNode(parentPH.GetPageNum());
             ix_newPageHdlr.setParentNode(parentPH.GetPageNum());
+            MarkDirty(parentPH.GetPageNum());
+            UnpinPage(parentPH.GetPageNum());
         } else {
             GetThisPage(ix_pageHdlr.GetParentNode(), parentPH);
             ix_newPageHdlr.setParentNode(parentPH.GetPageNum());
+            UnpinPage(parentPH.GetPageNum());
         }
 
         MarkDirty(ix_newPageHdlr.GetPageNum());
         UnpinPage(ix_newPageHdlr.GetPageNum());
+        if(parentPH.GetPageNum() == 41) {
+
+        }
         Insert_into_Interior(parentPH.GetPageNum(), mid_key, ix_newPageHdlr.GetPageNum());
-        MarkDirty(parentPH.GetPageNum());
-        UnpinPage(parentPH.GetPageNum());
     }
-    MarkDirty(ix_pageHdlr.GetParentNode());
-    UnpinPage(ix_pageHdlr.GetParentNode());
+    MarkDirty(ix_pageHdlr.GetPageNum());
+    UnpinPage(ix_pageHdlr.GetPageNum());
     return 0;
 }
 
@@ -138,33 +147,48 @@ RC IX_IndexHandler::GetThisPage(int pageNum, IX_PageHandler &ix_pageHandler) {
 
 int IX_IndexHandler::Search(int page, const Key &key) {
     IX_PageHandler ix_pageHandler;
-    if (GetThisPage(page, ix_pageHandler) == PAGE_NOT_IN_USE) return IX_PAGE_NOT_IN_USE;
-    int pageType = ix_pageHandler.ix_pageHeader.pageType;
-    if (pageType == LeafPage) return page;
+    if (GetThisPage(page, ix_pageHandler) == PAGE_NOT_IN_USE) {
+        printf("IX_PAGE_NOT_IN_USE\n");
+        exit(234);
+//        return IX_PAGE_NOT_IN_USE;
+    }
+    int pageType = ix_pageHandler.GetPageType();
+    int result_page;
+    if (pageType == LeafPage) {
+        UnpinPage(page);
+        return page;
+    }
     else {
         if(ix_pageHandler.GetnCurPtr() == 1) {
-            return Search(ix_pageHandler.GetInteriorPtr(0), key);
+            result_page = Search(ix_pageHandler.GetInteriorPtr(0), key);
         }
         else if (key < ix_pageHandler.GetInteriorKey(0))  //如果小于第一个值
-            return Search(ix_pageHandler.GetInteriorPtr(0), key);
+            result_page = Search(ix_pageHandler.GetInteriorPtr(0), key);
         else if (key >= ix_pageHandler.GetInteriorKey(ix_pageHandler.GetnCurPtr() - 2))   //如果大于最后一个值
-            return Search(ix_pageHandler.GetInteriorPtr(ix_pageHandler.GetnCurPtr() - 1), key);
+            result_page = Search(ix_pageHandler.GetInteriorPtr(ix_pageHandler.GetnCurPtr() - 1), key);
 
         else {
-            for (int i = 0; i < ix_pageHandler.ix_pageHeader.nCurPtrs - 1; i++) {
-                if (key >= ix_pageHandler.GetInteriorKey(i))
-                    return Search(ix_pageHandler.GetInteriorPtr(i + 1), key);
+            for (int i = 0; i < ix_pageHandler.GetnCurPtr() - 2; i++) {
+                if (key >= ix_pageHandler.GetInteriorKey(i) && key < ix_pageHandler.GetInteriorKey(i + 1)) {
+                    result_page = Search(ix_pageHandler.GetInteriorPtr(i + 1), key);
+                    break;
+                }
             }
         }
+        UnpinPage(ix_pageHandler.GetPageNum());
     }
+    return result_page;
 
 }
 
 RC IX_IndexHandler::AllocatePage(IX_PageHandler &ix_pageHandler) {
     PageHandler pf_pageHandler;
-    pf_fileHandler.AllocatePage(pf_pageHandler);
+    if(pf_fileHandler.AllocatePage(pf_pageHandler) == BM_NO_FREE_BUF_WARNING)
+        return BM_NO_FREE_BUF_WARNING;
     ix_pageHandler = IX_PageHandler(pf_pageHandler, ix_fh.attrType, ix_fh.attrLength);
     ix_pageHandler.setCurPtr(0);
+    return 0;
+
 }
 
 
@@ -181,6 +205,7 @@ RC IX_IndexHandler::DeleteEntry(void *pData, const RID &rid) {
             Delete_from_Interior(parent, ix_PH.GetPageNum());
         }
         IX_PageHandler ix_neighbourPH;
+        assert(ix_PH.GetPageType() == LeafPage);
         if(ix_PH.GetNextNode() != IX_NEXT_LIST_END) {
             if (GetThisPage(ix_PH.GetNextNode(), ix_neighbourPH) == PAGE_NOT_IN_USE)
                 return PAGE_NOT_IN_USE;
@@ -199,7 +224,8 @@ RC IX_IndexHandler::DeleteEntry(void *pData, const RID &rid) {
         UnpinPage(ix_neighbourPH.GetPageNum());
         DisposePage(ix_PH.GetPageNum());
     }
-
+    UnpinPage(page);
+    return 0;
 }
 
 RC IX_IndexHandler::Delete_from_Interior(int target_page, PagePtr child_page) {
@@ -214,10 +240,11 @@ RC IX_IndexHandler::Delete_from_Interior(int target_page, PagePtr child_page) {
                 DisposePage(ix_PH.GetPageNum());
             } else {    //如果没有父节点,当前节点是根节点
                 DisposePage(ix_PH.GetPageNum());
-                ix_fh.rootNode = NO_ROOT_NODE;
+                setRootNode(NO_ROOT_NODE);
             }
             return 0;
         }
+        UnpinPage(ix_PH.GetPageNum());
         return IX_NO_SUCH_ENTRY;
     }
     assert(ix_PH.GetnCurPtr() > 1);
@@ -230,14 +257,11 @@ RC IX_IndexHandler::Delete_from_Interior(int target_page, PagePtr child_page) {
                         (ix_PH.ix_pageHeader.nCurPtrs - 2 - i) * (ix_fh.attrLength + sizeof(PagePtr)) + sizeof(PagePtr));
             }
             ix_PH.setCurPtr(ix_PH.GetnCurPtr() - 1);
-//            if(ix_PH.ix_pageHeader.nCurPtrs == 0) {
-//                Delete_from_Interior(ix_PH.GetParentNode(), ix_PH.GetPageNum());
-//            }
-            MarkDirty(ix_PH.GetPageNum());
-            UnpinPage(ix_PH.GetPageNum());
             break;
         }
     }
+    MarkDirty(ix_PH.GetPageNum());
+    UnpinPage(ix_PH.GetPageNum());
     if(i == ix_PH.GetnCurPtr()) return IX_NO_SUCH_ENTRY;
     else return 0;
 }
@@ -258,6 +282,7 @@ void IX_IndexHandler::PrintInterNode(int node) {
     GetThisPage(node, ix_interiorPage);
     if(ix_interiorPage.GetPageType() == LeafPage) {
         ix_interiorPage.PrintLeafEntries();
+        UnpinPage(ix_interiorPage.GetPageNum());
         return;
     }
     else {
@@ -267,10 +292,27 @@ void IX_IndexHandler::PrintInterNode(int node) {
     for(int i = 0; i < ix_interiorPage.GetnCurPtr(); i++) {
         page = ix_interiorPage.GetInteriorPtr(i);
         GetThisPage(page, ix_pageHandler);
-        if(ix_pageHandler.GetPageType() == LeafPage) ix_pageHandler.PrintLeafEntries();
+        if(ix_pageHandler.GetPageType() == LeafPage) {
+            ix_pageHandler.PrintLeafEntries();
+        }
         else {
             PrintInterNode(page);
         }
+        UnpinPage(ix_pageHandler.GetPageNum());
     }
 
+    UnpinPage(ix_interiorPage.GetPageNum());
+}
+
+RC IX_IndexHandler::UpdateParentPtrOfChildNode(IX_PageHandler &ix_pageHandler) {
+
+    IX_PageHandler child_PH;
+    for(int i = 0; i < ix_pageHandler.GetnCurPtr(); i++) {
+        if(GetThisPage(ix_pageHandler.GetInteriorPtr(i), child_PH) == PAGE_NOT_IN_USE) {
+            printf("UpdateParentPtrOfChildNode GetThisPage failure\n");
+            return PAGE_NOT_IN_USE;
+        }
+        child_PH.setParentNode(ix_pageHandler.GetPageNum());
+        UnpinPage(child_PH.GetPageNum());
+    }
 }

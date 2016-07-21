@@ -74,7 +74,8 @@ RC BM_BufferMgr::AllocatePage(int fd, int pageNum, char *&ppointer) {
         throw page_exist_exception();
     } else {
         //如果内存中没有该Page
-        InternalAlloc(slot);
+        if( InternalAlloc(slot) == BM_NO_FREE_BUF_WARNING)
+            return BM_NO_FREE_BUF_WARNING;
         InitPageDesc(fd, pageNum, slot);
         hashTable->Insert(fd, pageNum, slot);
         ppointer = PageDescTable[slot].page_addr;
@@ -123,7 +124,7 @@ RC BM_BufferMgr::InternalAlloc(int &slot) {
     }
     int _slot;
     for(_slot = lastUsed; _slot != INVALID_SLOT; _slot = PageDescTable[_slot].prev) {
-        if(PageDescTable[_slot].pinCount == 0) {
+//        if(PageDescTable[_slot].pinCount == 0) {暂时不用pinCount
             if(PageDescTable[_slot].isdirty) {
                 int offset = PF_FILE_Hdr + PageDescTable[_slot].pageNum * pageSize;
                 lseek(PageDescTable[_slot].fd, offset, L_SET);
@@ -136,7 +137,7 @@ RC BM_BufferMgr::InternalAlloc(int &slot) {
             UsedLinkHead(_slot);
             slot = _slot;
             return 0;
-        }
+//        }
     }
 
     return BM_NO_FREE_BUF_WARNING;

@@ -122,14 +122,18 @@ RC FileHandler::AllocatePage(PageHandler &pageHandle) {
     if(fh.firstFreePage != PAGELISTEND) {
         //优先从free list中找到空闲页
         pageIdx = fh.firstFreePage;
-        bufferMgr->GetPage(fd, pageIdx, page_addr);
+        if( bufferMgr->GetPage(fd, pageIdx, page_addr) == BM_NO_FREE_BUF_WARNING) return BM_NO_FREE_BUF_WARNING;
         fh.firstFreePage = ((pageHeader *)page_addr)->nextFree;
         ((pageHeader *)page_addr)->nextFree = PAGEINUSE;
         bFileHeaderChanged = true;
     } else {
         //如果没有则新分配一个Page
         pageIdx = fh.numOfPages;
-        bufferMgr->AllocatePage(fd, pageIdx, page_addr);
+        if( bufferMgr->AllocatePage(fd, pageIdx, page_addr) == BM_NO_FREE_BUF_WARNING) {
+            printf("no free buffer\n");
+            exit(233);
+//            return BM_NO_FREE_BUF_WARNING;
+        }
         fh.numOfPages++;
         bFileHeaderChanged = true;
     }

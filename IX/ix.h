@@ -108,7 +108,6 @@ private:
     RC DeleteInteriorEntry(const Key &key); //根据key值删除内部节点中的某个entry
     RC Get_Loc_From_Key(CompOp compOp, Key &key, int &loc);  //leaf page中根据key值,返回相应的rid和location
 
-
 public:
     IX_PageHandler() : leaf_entry_size(0), interior_entry_size(0){}
     ~IX_PageHandler() {}
@@ -143,6 +142,8 @@ private:
     RC DisposePage(int pageNum) { return pf_fileHandler.DisposePage(pageNum); }
     RC MarkDirty(int pageNum) { return pf_fileHandler.MarkDirty(pageNum); }
     void UnpinPage(int pageNum) { pf_fileHandler.UnpinPage(pageNum); }
+
+    RC UpdateParentPtrOfChildNode(IX_PageHandler &ix_pageHandler);
 public:
     IX_IndexHandler() {}
     ~IX_IndexHandler() {}

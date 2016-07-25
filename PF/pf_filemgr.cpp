@@ -80,8 +80,8 @@ RC FileHandler::GetFirstPage(PageHandler &pageHandle) const {
 
 //先在内存中寻找，如果找不到就读入内存中
 RC FileHandler::GetThisPage(int pageNum, PageHandler &phandler) const throw(no_free_buffer_exp){
+    if(fh.numOfPages == 0) return PF_NO_PAGE_IN_FILE;
     assert(pageNum >= 0 && pageNum < fh.numOfPages);
-
     char *page_addr;
     if(bufferMgr->GetPage(fd, pageNum, page_addr) == BM_NO_FREE_BUF_WARNING) throw no_free_buffer_exp();
     if (((pageHeader *)page_addr)->nextFree != PAGEINUSE ) return PAGE_NOT_IN_USE;

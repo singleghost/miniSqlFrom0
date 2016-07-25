@@ -52,7 +52,7 @@ private:
     int attrLength;
 public:
     Key() {ptr = NULL;}
-    Key(char *ptr, AttrType attrType , int attrLength) : attrLength(attrLength), attrType(attrType)
+    Key(const char *ptr, AttrType attrType , int attrLength) : attrLength(attrLength), attrType(attrType)
     { this->ptr = new char[attrLength]; memcpy(this->ptr, ptr, attrLength); }
     Key(const Key &key);
     Key &operator=(const Key &key);
@@ -84,16 +84,16 @@ private:
 
     void InitPage(PagePtr parentNode, PagePtr nextNode, PagePtr prevNode, IX_pageType pageType); //初始化Page
     //Getters
-    int GetPageNum() { return pf_pageHandler.GetPageNum(); }    //获取当前页的页号
-    int GetParentNode() { return ix_pageHeader.parentNode; }    //获取父页的页号
-    int GetNextNode() { return ix_pageHeader.nextNode; }
-    int GetPrevNode() { return ix_pageHeader.prevNode; }
-    int GetPageType() { return ix_pageHeader.pageType; }
-    int GetnCurPtr() { return ix_pageHeader.nCurPtrs; }          //获取当前的指针数
-    Key GetLeafKey(int loc) { return Key(GetDataPtr() + loc * leaf_entry_size, attrType, attrLength); } //leaf page时根据loc获取Key值
-    RID GetLeafRID(int loc) { return *(RID *)(GetDataPtr() + loc * leaf_entry_size + attrLength); }     //leaf page时根据loc获取RID值
-    Key GetInteriorKey(int loc){ return Key(GetDataPtr() + loc * interior_entry_size + sizeof(PagePtr), attrType, attrLength); } //interior page时根据location获取Key值
-    PagePtr GetInteriorPtr(int loc) { return *(PagePtr *)(GetDataPtr() + loc * interior_entry_size); }    //interior page时根据loc获取PagePtr
+    int GetPageNum() const { return pf_pageHandler.GetPageNum(); }    //获取当前页的页号
+    int GetParentNode() const { return ix_pageHeader.parentNode; }    //获取父页的页号
+    int GetNextNode() const { return ix_pageHeader.nextNode; }
+    int GetPrevNode() const { return ix_pageHeader.prevNode; }
+    int GetPageType() const { return ix_pageHeader.pageType; }
+    int GetnCurPtr() const { return ix_pageHeader.nCurPtrs; }          //获取当前的指针数
+    Key GetLeafKey(int loc) const { return Key(GetDataPtr() + loc * leaf_entry_size, attrType, attrLength); } //leaf page时根据loc获取Key值
+    RID GetLeafRID(int loc) const { return *(RID *)(GetDataPtr() + loc * leaf_entry_size + attrLength); }     //leaf page时根据loc获取RID值
+    Key GetInteriorKey(int loc) const { return Key(GetDataPtr() + loc * interior_entry_size + sizeof(PagePtr), attrType, attrLength); } //interior page时根据location获取Key值
+    PagePtr GetInteriorPtr(int loc) const { return *(int *)(GetDataPtr() + loc * (4 + attrLength)); }    //interior page时根据loc获取PagePtr
 
     //setters
     void increaseCurPtr() { ix_pageHeader.nCurPtrs++; memcpy(pf_pageHandler.GetDataPtr(), &ix_pageHeader, sizeof(IX_pageHeader)); }
@@ -106,20 +106,20 @@ private:
     void InsertInterEntryToloc(int loc, const Key &key, PagePtr page);  //向interior page中插入interior entry
     RC DeleteLeafEntry(const Key &key);     //根据key值删除叶节点中的某个entry
     RC DeleteInteriorEntry(const Key &key); //根据key值删除内部节点中的某个entry
-    RC Get_Loc_From_Key(CompOp compOp, Key &key, int &loc);  //leaf page中根据key值,返回相应的rid和location
+    RC Get_Loc_From_Key(CompOp compOp, Key &key, int &loc) const;  //leaf page中根据key值,返回相应的rid和location
 
 public:
-    IX_PageHandler() : leaf_entry_size(0), interior_entry_size(0){}
+    IX_PageHandler() {}
     ~IX_PageHandler() {}
     IX_PageHandler(const PageHandler &pf_pageHandler, AttrType attrType, int attrLength);   //构造函数
     IX_PageHandler(const IX_PageHandler &ix_pageHandler);   //复制构造函数
-    char *GetDataPtr() { return pf_pageHandler.GetDataPtr() + sizeof(IX_pageHeader); }      //获取指向数据的指针(不包括页头)
+    char *GetDataPtr() const { return pf_pageHandler.GetDataPtr() + sizeof(IX_pageHeader); }      //获取指向数据的指针(不包括页头)
     void InsertLeafEntry(const Key &key, const RID &rid);   //向leaf page中插入一个entry
     void InsertInteriorEntry(const Key &key, PagePtr page); //向interior page中插入一个entry
 
     //调试用
-    void PrintLeafEntries();
-    void PrintInteriorEntries();
+    void PrintLeafEntries() const;
+    void PrintInteriorEntries() const;
 };
 
 class IX_IndexHandler {
@@ -132,7 +132,7 @@ private:
     bool bHeaderModified;   //文件头是否被改变
 
     void setRootNode(int rootNode) { ix_fh.rootNode = rootNode; bHeaderModified = true; }
-    int Search(int page, const Key &key);      //从某页开始搜索某个值,返回该值所在的pageNum(递归调用函数)
+    int Search(int page, const Key &key) ;      //从某页开始搜索某个值,返回该值所在的pageNum(递归调用函数)
     int Insert_into_Leaf(int target_page, const Key &key, const RID &rid);  //向target leaf page插入key和rid
     int Insert_into_Interior(int target_page, const Key &key, PagePtr pPage);//向target interior page插入key和PagePtr
     int Delete_from_Interior(int target_page, PagePtr child_page);          //根据child page从target interior page中删除entry
@@ -152,8 +152,8 @@ public:
     RC ForcePages() { return pf_fileHandler.ForcePages(); }   //将全部Dirty Page写回磁盘
 
     //调试用
-    void PrintAll();
-    void PrintInterNode(int node);
+    void PrintAll() ;
+    void PrintInterNode(int node) ;
 };
 
 class IX_Manager {

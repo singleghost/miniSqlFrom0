@@ -145,7 +145,7 @@ RC IX_IndexHandler::GetThisPage(int pageNum, IX_PageHandler &ix_pageHandler) {
     return 0;
 }
 
-int IX_IndexHandler::Search(int page, const Key &key) {
+int IX_IndexHandler::Search(int page, const Key &key){
     IX_PageHandler ix_pageHandler;
     if (GetThisPage(page, ix_pageHandler) == PAGE_NOT_IN_USE) {
         printf("IX_PAGE_NOT_IN_USE\n");
@@ -286,7 +286,7 @@ void IX_IndexHandler::PrintInterNode(int node) {
         return;
     }
     else {
-        ix_interiorPage.PrintInteriorEntries();
+//        ix_interiorPage.PrintInteriorEntries();
     }
     int page;
     for(int i = 0; i < ix_interiorPage.GetnCurPtr(); i++) {
@@ -315,4 +315,5 @@ RC IX_IndexHandler::UpdateParentPtrOfChildNode(IX_PageHandler &ix_pageHandler) {
         child_PH.setParentNode(ix_pageHandler.GetPageNum());
         UnpinPage(child_PH.GetPageNum());
     }
+    return 0;
 }

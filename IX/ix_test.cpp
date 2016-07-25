@@ -4,7 +4,7 @@
 
 #include "ix.h"
 
-#define INSERT_NUM 500
+#define INSERT_NUM 200000
 int main()
 {
     PF_Manager pfm;
@@ -20,6 +20,10 @@ int main()
     i = 0;
     j = 0;
     for(k= 0; k < INSERT_NUM; k++){   //parentNode似乎还有点问题
+        if(k == 85852) {
+            indexHandler.PrintAll();
+            exit(0);
+        }
         RID rid(i, j);
 //        memset(value, 0, 100);
 //        sprintf(value, "%d", k);
@@ -30,20 +34,20 @@ int main()
             j = 0;
         }
     }
-    indexHandler.PrintAll();
+//    indexHandler.PrintAll();
     printf("\n-----------insert over------------\n\n");
 
-    int cmpValue = 100;
-    indexScan.OpenScan(indexHandler, LE_OP, &cmpValue);
-    RID res_rid(-1, -1);
-    while(true) {
-
-        if( indexScan.GetNextEntry(res_rid) == IX_NO_MORE_ENTRY) break;
-        cout << "pageNum:" << res_rid.getPageNum() << "\t" << "slot:" << res_rid.getSlot() << endl;
-    }
-
-    i = 0;
-    j = 0;
+//    int cmpValue = 100;
+//    indexScan.OpenScan(indexHandler, LE_OP, &cmpValue);
+//    RID res_rid(-1, -1);
+//    while(true) {
+//
+//        if( indexScan.GetNextEntry(res_rid) == IX_NO_MORE_ENTRY) break;
+//        cout << "pageNum:" << res_rid.getPageNum() << "\t" << "slot:" << res_rid.getSlot() << endl;
+//    }
+//
+//    i = 0;
+//    j = 0;
 //
     for(k= 0; k <INSERT_NUM; k++){
 //        memset(value, 0, 100);
@@ -63,51 +67,50 @@ int main()
 
 
     //第二轮
-    printf("---------------second round\n\n--------------");
-    ixm.OpenIndex("zju", 0, indexHandler);
-
-    i = 0;
-    j = 0;
-    for(k= 0; k < INSERT_NUM; k++){   //parentNode似乎还有点问题
-        RID rid(i, j);
-//        memset(value, 0, 100);
-//        sprintf(value, "%d", k);
-        indexHandler.InsertEntry(&k, rid);
-        j++;
-        if(j >= 100) {
-            i++;
-            j = 0;
-        }
-    }
-    indexHandler.PrintAll();
-    printf("\n-----------insert over------------\n\n");
-
-    cmpValue = 100;
-    indexScan.OpenScan(indexHandler, LE_OP, &cmpValue);
-    res_rid = RID(-1, -1);
-    while(true) {
-
-        if( indexScan.GetNextEntry(res_rid) == IX_NO_MORE_ENTRY) break;
-        cout << "pageNum:" << res_rid.getPageNum() << "\t" << "slot:" << res_rid.getSlot() << endl;
-    }
-
-    i = 0;
-    j = 0;
+//    printf("---------------second round\n\n--------------");
+//    ixm.OpenIndex("zju", 0, indexHandler);
 //
-    for(k= 0; k <INSERT_NUM; k++){
-//        memset(value, 0, 100);
-//        sprintf(value, "%d", k);
-//        if(k ==4725) pfm.GetBufferManager()->PrintPageDescTable();
-        RID rid(i, j);
-        indexHandler.DeleteEntry(&k, rid);
-        j++;
-        if(j >= 100) {
-            i++;
-            j = 0;
-        }
-    }
-    indexHandler.PrintAll();
-    indexScan.CloseScan();
+//    i = 0;
+//    j = 0;
+//    for(k= 0; k < INSERT_NUM; k++){   //parentNode似乎还有点问题
+//        RID rid(i, j);
+////        memset(value, 0, 100);
+////        sprintf(value, "%d", k);
+//        indexHandler.InsertEntry(&k, rid);
+//        j++;
+//        if(j >= 100) {
+//            i++;
+//            j = 0;
+//        }
+//    }
+//    indexHandler.PrintAll();
+//    printf("\n-----------insert over------------\n\n");
+//
+//    cmpValue = 100;
+//    indexScan.OpenScan(indexHandler, LE_OP, &cmpValue);
+//    res_rid = RID(-1, -1);
+//    while(true) {
+//
+//        if( indexScan.GetNextEntry(res_rid) == IX_NO_MORE_ENTRY) break;
+//        cout << "pageNum:" << res_rid.getPageNum() << "\t" << "slot:" << res_rid.getSlot() << endl;
+//    }
+//
+//    i = 0;
+//    j = 0;
+////
+//    for(k= 0; k <INSERT_NUM; k++){
+////        memset(value, 0, 100);
+////        sprintf(value, "%d", k);
+////        if(k ==4725) pfm.GetBufferManager()->PrintPageDescTable();
+//        RID rid(i, j);
+//        indexHandler.DeleteEntry(&k, rid);
+//        j++;
+//        if(j >= 100) {
+//            i++;
+//            j = 0;
+//        }
+//    }
+//    indexHandler.PrintAll();
     ixm.DestroyIndex("zju", 0);
 }
 

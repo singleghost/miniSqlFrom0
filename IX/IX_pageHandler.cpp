@@ -109,7 +109,7 @@ RC IX_PageHandler::DeleteLeafEntry(const Key &key) {
     return IX_NO_SUCH_ENTRY;
 }
 
-RC IX_PageHandler::Get_Loc_From_Key(CompOp compOp, Key &key, int &loc){
+RC IX_PageHandler::Get_Loc_From_Key(CompOp compOp, Key &key, int &loc) const {
     int i;
     switch (compOp) {
         case EQ_OP:
@@ -158,7 +158,7 @@ RC IX_PageHandler::Get_Loc_From_Key(CompOp compOp, Key &key, int &loc){
     return IX_KEY_NOT_FOUND;
 }
 
-void IX_PageHandler::PrintLeafEntries() {
+void IX_PageHandler::PrintLeafEntries() const {
     printf("Leaf Page; PageNum: %d; parentNode: %d; nextNode: %d; prevNode: %d; nCurPtr: %d\n", GetPageNum(), GetParentNode(), ix_pageHeader.nextNode,
     ix_pageHeader.prevNode, GetnCurPtr());
 //    printf("key\t\t\t\tpage\tslot\n");
@@ -174,7 +174,7 @@ void IX_PageHandler::PrintLeafEntries() {
 //    }
 }
 
-void IX_PageHandler::PrintInteriorEntries() {
+void IX_PageHandler::PrintInteriorEntries() const{
     printf("Interior Page; PageNum: %d; parentNode: %d\n", GetPageNum(), GetParentNode());
     for(int i = 0; i < GetnCurPtr(); i++) {
         printf("%d | ", GetInteriorPtr(i));

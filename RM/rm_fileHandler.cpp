@@ -87,9 +87,10 @@ RC RM_FileHandler::AllocatePage(RM_PageHandler &rm_pageHandler) {
 }
 
 RC RM_FileHandler::GetThisPage(int pageNum, RM_PageHandler &rm_pageHandler) const{
+    RC rc;
     PageHandler pf_pageHandler;
-    if( pf_fileHandler.GetThisPage(pageNum, pf_pageHandler) == PAGE_NOT_IN_USE)
-        return PAGE_NOT_IN_USE;
+    if( rc = pf_fileHandler.GetThisPage(pageNum, pf_pageHandler))
+        return rc;
     rm_pageHandler = RM_PageHandler(pf_pageHandler, rm_fh);
 
     return 0;

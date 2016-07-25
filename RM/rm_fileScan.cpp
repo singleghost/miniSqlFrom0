@@ -87,12 +87,13 @@ RC RM_FileScan::CloseScan() {
 }
 
 RC RM_FileScan::GetNextRec(RM_Record &rec) {
+    RC rc;
     if(!bScanIsOpen)
         return -1;
     int page = cur_rid.getPageNum();
     int slot = cur_rid.getSlot();
     RM_PageHandler rm_pageHandler;
-    rm_fileHandler.GetThisPage(page, rm_pageHandler);
+    if(rc = rm_fileHandler.GetThisPage(page, rm_pageHandler)) return rc;
     while(true) {
 
         while( rm_pageHandler.GetNextRecord(slot, rec) == RM_PAGE_RECORD_EOF ) {

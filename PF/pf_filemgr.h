@@ -11,13 +11,15 @@
 #include "pf_exception.h"
 using std::string;
 
-#define PAGE_NOT_IN_USE -1      //返回码
 #define BUFFER_POOL_SIZE 100    //缓冲区的大小,同时最多能放多少页
 #define PAGELISTEND -1          //用于pageHeader中nextFree字段,表示free list的末尾
 #define PAGEINUSE   -2          //用于pageHeader中的nextFree字段,表示当前页被使用
 
 #define ALL_PAGES -1            //用于默认参数
 
+//RC code
+#define PAGE_NOT_IN_USE -1      //返回码
+#define PF_NO_PAGE_IN_FILE -2
 struct pageHeader {
     int nextFree;   //下一个free page
     int pageNum;        //页号
@@ -40,12 +42,12 @@ public:
     PageHandler() { data = NULL; }
     PageHandler(const PageHandler &phandler) { this->phdr = phandler.phdr; data = phandler.data; }
     PageHandler & operator= (const PageHandler &phandler);
-    char * GetDataPtr() {
+    char * GetDataPtr() const{
         //得到指向页中数据的指针,页中数据不包括页头
         return data;
     }
 
-    int GetPageNum() {
+    int GetPageNum() const{
         //得到页的编号
         return phdr.pageNum;
     }

@@ -10,7 +10,7 @@ set(SOURCE_FILES
 set(DBCREATE_SOURCE
         BM/bm_hashTable.cpp BM/bm_hashTable.h BM/bm_buffermgr.cpp BM/bm_buffermgr.h PF/pf_filemgr.cpp PF/pf_exception.h RM/rm.cpp RM/rm.h RM/rm_fileHandler.cpp RM/rm_pageHandler.cpp
         RM/rm_fileScan.cpp IX/ix.h IX/IX_manager.cpp IX/ix_IndexHandler.cpp IX/IX_pageHandler.cpp IX/ix_Key.cpp IX/ix_IndexScan.cpp SM/sm_manager.cpp SM/printer.h SM/printer.cpp
-        dbcreate.cpp)
+        dbcreate.cpp QL/ql_manager.cpp QL/ql_manager.h)
 
 set(DBDESTROY_SOURCE
         BM/bm_hashTable.cpp BM/bm_hashTable.h BM/bm_buffermgr.cpp BM/bm_buffermgr.h PF/pf_filemgr.cpp PF/pf_exception.h RM/rm.cpp RM/rm.h RM/rm_fileHandler.cpp RM/rm_pageHandler.cpp

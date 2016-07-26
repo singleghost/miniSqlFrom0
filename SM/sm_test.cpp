@@ -7,6 +7,7 @@
 #define DBNAME "ZJU"
 int main()
 {
+    printf("%d", strcmp(NULL, NULL));
     PF_Manager pfm;
     RM_Manager rmm(pfm);
     IX_Manager ixm(pfm);
@@ -27,18 +28,31 @@ int main()
     attrs[2].attrName = "budget";
 
     RC rc;
-//    smm.DropTable("departments");
-//    if(rc = smm.CreateTable("departments", 3, attrs)) exit(rc);
+    if(rc = smm.DropTable("departments")) {
+        SM_PrintError(rc);
+        exit(1);
+    }
+    if(rc = smm.CreateTable("departments", 3, attrs)) {
+        SM_PrintError(rc);
+    }
 
+    if(rc = smm.CreateTable("departments", 3, attrs)) {
+        SM_PrintError(rc);
+    }
 //    if(rc = smm.CreateIndex("departments", "departmentName")) printf("rc=%d\n", rc);
 //    if(rc = smm.CreateIndex("departments", "buildYear")) printf("rc=%d\n", rc);
 //    if(rc = smm.CreateIndex("departments", "budget")) printf("rc=%d\n", rc);
-    smm.DropIndex("departments", "departmentName");
+    if(rc = smm.DropIndex("departments", "departmentName")) {
+        SM_PrintError(rc);
+    }
 //    smm.DropTable("departments");
 //    smm.Load("departments", "/Users/dddong/workspace/ClionProjects/miniSqlFrom0/dep.data");
     smm.Print("departments");
     smm.Print("relcat");
     smm.Print("attrcat");
-    if(rc = smm.CloseDb()) exit(rc);
+    if(rc = smm.CloseDb()) {
+        SM_PrintError(rc);
+        exit(1);
+    }
 }
 

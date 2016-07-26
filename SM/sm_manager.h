@@ -17,7 +17,8 @@
 #define SM_DUPLICATE_TABLE -2
 #define SM_DUPLICATE_INDEX -3
 #define SM_DATA_FILE_NOT_EXIST -4
-
+#define SM_ATTR_NOT_FOUND -5
+#define SM_NO_INDEX_ON_ATTR -6
 // Used by SM_Manager::CreateTable
 struct AttrInfo {
     char     *attrName;           // Attribute name
@@ -74,7 +75,12 @@ public:
     RC Set         (const char *paramName,              // Set system parameter
                     const char *value);
 
+    //一些提供给QL的接口
+    bool IsAttrInOneOfRelations(const char *attrName, int nRelations, const char * const relations[]);
+    bool IsRelationExist(const char *relName);
 };
+
+void SM_PrintError(RC rc);
 
 
 #endif //MINISQLFROM0_SM_MANAGER_H

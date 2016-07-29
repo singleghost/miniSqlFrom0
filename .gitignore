@@ -1,0 +1,5 @@
+.idea
+*.[oa]
+*~
+.DS_Store
+dep.data

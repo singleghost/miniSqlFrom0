@@ -406,10 +406,89 @@ bool SM_Manager::IsAttrInOneOfRelations(const char *attrName, int nRelations, co
     return false;
 
 }
+
+AttrType SM_Manager::GetAttrType(const char *relName, const char *attrName) {
+    RM_Record rec;
+    rm_fileScan.OpenScan(attrcat_fhandler, STRING, MAXNAME, 0, EQ_OP, (void *)relName);
+    while(rm_fileScan.GetNextRec(rec) != RM_EOF) {
+        AttrcatTuple *attrcatTuple = (AttrcatTuple *)rec.GetContent();
+        if(strcmp(attrcatTuple->attrName, attrName) == 0) {
+            rm_fileScan.CloseScan();
+            return attrcatTuple->attrType;
+        }
+    }
+    rm_fileScan.CloseScan();
+
+}
 char *error_msgs[20] = {"Table not exist", "duplicate table", "duplicate index", "data file not exist in `load` command",
                         "attribute not found", "no index built on specified attribute"};
 void SM_PrintError(RC rc) {
     printf("Error: ");
     int index = 0 - rc -1;
     printf("%s\n", error_msgs[index]);
+}
+
+void SM_Manager::FillRelCatTuples(RelcatTuple *relcatTuples, int nRelations, const char *const *relations){
+    int i;
+    RM_Record rec;
+    for(i = 0; i < nRelations; i++) {
+        rm_fileScan.OpenScan(relcat_fhandler, STRING, MAXNAME, 0, EQ_OP, (void *)relations[i]);
+        if( rm_fileScan.GetNextRec(rec) == RM_EOF) assert(false);
+        memcpy(&relcatTuples[i], rec.GetContent(), sizeof(RelcatTuple));
+        rm_fileScan.CloseScan();
+    }
+}
+
+void SM_Manager::FillAttrInfoInRecords(AttrInfoInRecord *attrInfoInRecords, int nRelations, const RelcatTuple *relCatTuples) {
+    int i,j,m;
+    int nAttrsOfRel;
+    int baseOffset = 0;
+    RM_Record rec;
+    for(i = 0; i < nRelations; i++) {
+        nAttrsOfRel = relCatTuples[i].attrCount;
+
+        for(j = 0; j < nAttrsOfRel; j++) {
+            rm_fileScan.OpenScan(attrcat_fhandler, STRING, MAXNAME, 0, EQ_OP, (void *)relCatTuples[i].relName);
+            while(rm_fileScan.GetNextRec(rec) != RM_EOF) {
+                memcpy(&attrInfoInRecords[i], rec.GetContent(), sizeof(AttrInfoInRecord));
+                attrInfoInRecords[i].offset += baseOffset;
+            }
+            rm_fileScan.CloseScan();
+        }
+        baseOffset = relCatTuples[i].tupleLength;
+    }
+
+}
+
+void SM_Manager::FillDataAttrInfoForPrint(DataAttrInfo *attrInfos, int nAttrs, const RelAttr *relAttrs, int nRelations,
+                                          const char *const *relations) {
+    assert(sizeof(DataAttrInfo) == sizeof(AttrcatTuple));
+    assert(sizeof(DataAttrInfo) == sizeof(AttrInfoInRecord));
+
+    int i,j,m;
+    bool bFound = false;
+    RM_Record rec;
+    for(i = 0; i < nAttrs; i++) {
+        rm_fileScan.OpenScan(attrcat_fhandler, STRING, MAXNAME, MAXNAME, EQ_OP, relAttrs[i].attrName);
+        while(rm_fileScan.GetNextRec(rec) != RM_EOF) {
+            if(relAttrs[i].relName != NULL) {
+                if(strcmp(relAttrs[i].relName, ((AttrcatTuple *)rec.GetContent())->relName) == 0) {
+                    memcpy(&attrInfos[i], rec.GetContent(), sizeof(DataAttrInfo));
+                    break;
+                }
+            } else {
+                //如果relName省略
+                for(j = 0; j < nRelations; j++) {
+                    AttrcatTuple *attrcatTuple = (AttrcatTuple *)rec.GetContent();
+                   if(strcmp(attrcatTuple->relName, relations[i]) == 0) {
+                       memcpy(&attrInfos[i], attrcatTuple, sizeof(DataAttrInfo));
+                       bFound = true;
+                       break;
+                   }
+                }
+            }
+            if(bFound) break;
+        }
+        rm_fileScan.CloseScan();
+    }
 }

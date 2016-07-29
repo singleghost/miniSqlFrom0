@@ -7,6 +7,8 @@
 
 #include "../minisql.h"
 #include "../IX/ix.h"
+#include "printer.h"
+#include "../QL/ql_manager.h"
 
 #define RELCAT_RECORD_SIZE (MAXNAME + sizeof(int) * 3)
 #define ATTRCAT_RECORD_SIZE (MAXNAME + MAXNAME + sizeof(int) + sizeof(AttrType) + sizeof(int) + sizeof(int))
@@ -42,6 +44,7 @@ struct AttrcatTuple {
     int attrLength;
     int indexNo;
 };
+
 class SM_Manager {
 private:
     IX_Manager &ixm;
@@ -78,6 +81,10 @@ public:
     //一些提供给QL的接口
     bool IsAttrInOneOfRelations(const char *attrName, int nRelations, const char * const relations[]);
     bool IsRelationExist(const char *relName);
+    void FillDataAttrInfoForPrint(DataAttrInfo *attrInfos, int nAttrs, const RelAttr *relAttrs, int nRelations, const char * const relations[]);
+    AttrType GetAttrType(const char *relName, const char *attrName);
+    void FillRelCatTuples(RelcatTuple *relcatTuples, int nRelations, const char * const relations[]);
+    void FillAttrInfoInRecords(AttrInfoInRecord *attrInfoInRecords, int nRelations, const RelcatTuple *relCatTuples);
 };
 
 void SM_PrintError(RC rc);

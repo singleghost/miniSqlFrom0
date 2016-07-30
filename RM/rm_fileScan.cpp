@@ -4,71 +4,75 @@
 
 #include "rm.h"
 
-bool less_than(void *value1, void *value2, AttrType attrType, int attrLength) {
+
+bool myComp::less_than(void *value1, void *value2, AttrType attrType, int attrLength) {
     switch (attrType) {
         case INT:
-            return *(int *)value1 < *(int *)value2;
+            return *(int *) value1 < *(int *) value2;
         case FLOAT:
-            return *(float *)value1 < *(float *)value2;
+            return *(float *) value1 < *(float *) value2;
         case STRING:
             return strncmp((const char *) value1, (const char *) value2, attrLength) < 0;
     }
 }
 
-bool less_than_or_equal(void *value1, void *value2, AttrType attrType, int attrLength) {
+bool myComp::less_than_or_equal(void *value1, void *value2, AttrType attrType, int attrLength) {
     switch (attrType) {
         case INT:
-            return *(int *)value1 <= *(int *)value2;
+            return *(int *) value1 <= *(int *) value2;
         case FLOAT:
-            return *(float *)value1 <= *(float *)value2;
+            return *(float *) value1 <= *(float *) value2;
         case STRING:
-            return ( strncmp((const char *) value1, (const char *) value2, attrLength) <= 0);
+            return (strncmp((const char *) value1, (const char *) value2, attrLength) <= 0);
     }
 }
-bool greater_than(void *value1, void *value2, AttrType attrType, int attrLength){
+
+bool myComp::greater_than(void *value1, void *value2, AttrType attrType, int attrLength) {
     switch (attrType) {
         case INT:
-            return *(int *)value1 > *(int *)value2;
+            return *(int *) value1 > *(int *) value2;
         case FLOAT:
-            return *(float *)value1 > *(float *)value2;
+            return *(float *) value1 > *(float *) value2;
         case STRING:
             return strncmp((const char *) value1, (const char *) value2, attrLength) > 0;
     }
 }
-bool greater_than_or_equal(void *value1, void *value2, AttrType attrType, int attrLength) {
+
+bool myComp::greater_than_or_equal(void *value1, void *value2, AttrType attrType, int attrLength) {
     switch (attrType) {
         case INT:
-            return *(int *)value1 >= *(int *)value2;
+            return *(int *) value1 >= *(int *) value2;
         case FLOAT:
-            return *(float *)value1 >= *(float *)value2;
+            return *(float *) value1 >= *(float *) value2;
         case STRING:
             return strncmp((const char *) value1, (const char *) value2, attrLength) >= 0;
     }
 }
-bool equal(void *value1, void *value2, AttrType attrType, int attrLength){
+
+bool myComp::equal_To(void *value1, void *value2, AttrType attrType, int attrLength) {
     switch (attrType) {
         case INT:
-            return *(int *)value1 == *(int *)value2;
+            return *(int *) value1 == *(int *) value2;
         case FLOAT:
-            return *(float *)value1 == *(float *)value2;
+            return *(float *) value1 == *(float *) value2;
         case STRING:
             return strncmp((const char *) value1, (const char *) value2, attrLength) == 0;
     }
 }
-bool not_equal(void *value1, void *value2, AttrType attrType, int attrLength){
+
+bool myComp::not_equal_to(void *value1, void *value2, AttrType attrType, int attrLength) {
     switch (attrType) {
         case INT:
-            return *(int *)value1 != *(int *)value2;
+            return *(int *) value1 != *(int *) value2;
         case FLOAT:
-            return *(float *)value1 != *(float *)value2;
+            return *(float *) value1 != *(float *) value2;
         case STRING:
             return strncmp((const char *) value1, (const char *) value2, attrLength) != 0;
     }
 }
 
 RC RM_FileScan::OpenScan(const RM_FileHandler &rm_fileHandler, AttrType attrType, int attrLength, int attrOffset,
-                         CompOp compOp, void *value, ClientHint pinHint)
-{
+                         CompOp compOp, void *value, ClientHint pinHint) {
     this->rm_fileHandler = rm_fileHandler;
     this->attrType = attrType;
     this->attrLength = attrLength;
@@ -88,15 +92,15 @@ RC RM_FileScan::CloseScan() {
 
 RC RM_FileScan::GetNextRec(RM_Record &rec) {
     RC rc;
-    if(!bScanIsOpen)
+    if (!bScanIsOpen)
         return -1;
     int page = cur_rid.getPageNum();
     int slot = cur_rid.getSlot();
     RM_PageHandler rm_pageHandler;
-    if(rc = rm_fileHandler.GetThisPage(page, rm_pageHandler)) return rc;
-    while(true) {
+    if (rc = rm_fileHandler.GetThisPage(page, rm_pageHandler)) return rc;
+    while (true) {
 
-        while( rm_pageHandler.GetNextRecord(slot, rec) == RM_PAGE_RECORD_EOF ) {
+        while (rm_pageHandler.GetNextRecord(slot, rec) == RM_PAGE_RECORD_EOF) {
             try {
                 page = rm_pageHandler.GetPageNum();
                 rm_fileHandler.UnpinPage(page);
@@ -106,29 +110,35 @@ RC RM_FileScan::GetNextRec(RM_Record &rec) {
                 return RM_EOF;
             }
         }
-        if(compOp == NO_OP) {
+        if (compOp == NO_OP) {
             cur_rid = rec.GetRid();
             return 0;
         }
         switch (compOp) {
-            case LE_OP: comparator = &less_than_or_equal;
+            case LE_OP:
+                comparator = &myComp::less_than_or_equal;
                 break;
-            case LT_OP: comparator = &less_than;
+            case LT_OP:
+                comparator = &myComp::less_than;
                 break;
-            case GT_OP: comparator = &greater_than;
+            case GT_OP:
+                comparator = &myComp::greater_than;
                 break;
-            case GE_OP: comparator = &greater_than_or_equal;
+            case GE_OP:
+                comparator = &myComp::greater_than_or_equal;
                 break;
-            case EQ_OP: comparator = &equal;
+            case EQ_OP:
+                comparator = &myComp::equal_To;
                 break;
-            case NE_OP: comparator = &not_equal;
+            case NE_OP:
+                comparator = &myComp::not_equal_to;
                 break;
             default:
                 break;
         }
         char *pRecord = rec.GetContent();
 
-        if( (*comparator)(pRecord + attrOffset, this->value, attrType, attrLength) ) {
+        if ((*comparator)(pRecord + attrOffset, this->value, attrType, attrLength)) {
             cur_rid = rec.GetRid();
             return 0;
         } else {

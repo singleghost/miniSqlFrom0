@@ -8,7 +8,6 @@
 #include "../minisql.h"
 #include "../IX/ix.h"
 #include "printer.h"
-#include "../QL/ql_manager.h"
 
 #define RELCAT_RECORD_SIZE (MAXNAME + sizeof(int) * 3)
 #define ATTRCAT_RECORD_SIZE (MAXNAME + MAXNAME + sizeof(int) + sizeof(AttrType) + sizeof(int) + sizeof(int))
@@ -54,9 +53,6 @@ private:
     RM_FileHandler attrcat_fhandler;
 
     RM_FileScan rm_fileScan;
-    static void createRelCatTuple(const char *relName, int tupleLength, int attrCount, int indexCount, char *relcat_rec);
-    static void createAttrCatTuple(const char *relName, const char *attrName, int offset, AttrType attrType, int attrLength, int indexNo, char *attrcat_rec);
-
 public:
     SM_Manager  (IX_Manager &ixm, RM_Manager &rmm) : ixm(ixm), rmm(rmm) {}  // Constructor
     ~SM_Manager () {};                                  // Destructor
@@ -85,6 +81,10 @@ public:
     AttrType GetAttrType(const char *relName, const char *attrName);
     void FillRelCatTuples(RelcatTuple *relcatTuples, int nRelations, const char * const relations[]);
     void FillAttrInfoInRecords(AttrInfoInRecord *attrInfoInRecords, int nRelations, const RelcatTuple *relCatTuples);
+
+    static void createRelCatTuple(const char *relName, int tupleLength, int attrCount, int indexCount, char *relcat_rec);
+    static void createAttrCatTuple(const char *relName, const char *attrName, int offset, AttrType attrType, int attrLength, int indexNo, char *attrcat_rec);
+
 };
 
 void SM_PrintError(RC rc);

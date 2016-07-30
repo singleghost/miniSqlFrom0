@@ -1,6 +1,8 @@
 #ifndef __MINISQL__
 #define __MINISQL__
 
+#include <iostream>
+using std::ostream;
 /*以页的方式组织管理文件，一页为４０９６ｋｂ，方便内存和硬盘进行页的交换*/
 #define PAGE_SIZE 4096
 #define PF_FILE_Hdr 4096        //文件头大写
@@ -37,4 +39,36 @@ enum IX_pageType {
     InteriorPage
 };
 
-#endif 
+struct RelAttr {
+    char *relName;     // relation name (may be NULL)
+    char *attrName;    // attribute name
+    friend ostream &operator<<(ostream &s, const RelAttr &ra);
+};
+
+struct Value {
+    AttrType type;     // type of value
+    void     *data;    // value
+    friend ostream &operator<<(ostream &s, const Value &v);
+};
+
+struct Condition {
+    RelAttr lhsAttr;      // left-hand side attribute
+    CompOp  op;           // comparison operator
+    int     bRhsIsAttr;   // TRUE if right-hand side is an attribute
+    //   and not a value
+    RelAttr rhsAttr;      // right-hand side attribute if bRhsIsAttr = TRUE
+    Value   rhsValue;     // right-hand side value if bRhsIsAttr = FALSE
+    bool (*compartor)(void *value1, void *value2, AttrType attrType, int attrLength);
+    friend ostream &operator<<(ostream &s, const Condition &c);
+};
+
+//用来记录每一次查询所有属性的信息,多表join的查询时各个表的所有字段都包括进去
+struct AttrInfoInRecord {   //字段与AttrCatTuple完全相同,offset字段含义不同
+    char relName[MAXNAME];
+    char attrName[MAXNAME];
+    int offset;             //在整个查询record中的偏移
+    AttrType attrType;
+    int attrLength;
+    int indexNo;
+};
+#endif

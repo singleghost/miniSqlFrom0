@@ -7,7 +7,6 @@
 #define DBNAME "ZJU"
 int main()
 {
-    printf("%d", strcmp(NULL, NULL));
     PF_Manager pfm;
     RM_Manager rmm(pfm);
     IX_Manager ixm(pfm);
@@ -28,10 +27,10 @@ int main()
     attrs[2].attrName = "budget";
 
     RC rc;
-    if(rc = smm.DropTable("departments")) {
-        SM_PrintError(rc);
-        exit(1);
-    }
+//    if(rc = smm.DropTable("departments")) {
+//        SM_PrintError(rc);
+//        exit(1);
+//    }
     if(rc = smm.CreateTable("departments", 3, attrs)) {
         SM_PrintError(rc);
     }

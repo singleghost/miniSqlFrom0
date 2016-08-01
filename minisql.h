@@ -58,14 +58,13 @@ struct Condition {
     //   and not a value
     RelAttr rhsAttr;      // right-hand side attribute if bRhsIsAttr = TRUE
     Value   rhsValue;     // right-hand side value if bRhsIsAttr = FALSE
-    bool (*compartor)(void *value1, void *value2, AttrType attrType, int attrLength);
     friend ostream &operator<<(ostream &s, const Condition &c);
 };
 
 //用来记录每一次查询所有属性的信息,多表join的查询时各个表的所有字段都包括进去
 struct AttrInfoInRecord {   //字段与AttrCatTuple完全相同,offset字段含义不同
-    char relName[MAXNAME];
-    char attrName[MAXNAME];
+    char relName[MAXNAME + 1];
+    char attrName[MAXNAME + 1];
     int offset;             //在整个查询record中的偏移
     AttrType attrType;
     int attrLength;

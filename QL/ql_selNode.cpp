@@ -9,29 +9,30 @@ QL_SelNode::QL_SelNode(QL_Manager &qlm, QL_Node &prevNode, Condition cond) : QL_
     //确定用于比较的函数
     switch (cond.op) {
         case EQ_OP:
-            cond.compartor = &myComp::equal_To;
+            compfunc = &myComp::equal_To;
             break;
         case LT_OP:
-            cond.compartor = &myComp::less_than;
+            compfunc = &myComp::less_than;
             break;
         case LE_OP:
-            cond.compartor = &myComp::less_than_or_equal;
+            compfunc = &myComp::less_than_or_equal;
             break;
         case GT_OP:
-            cond.compartor = &myComp::greater_than;
+            compfunc = &myComp::greater_than;
             break;
         case GE_OP:
-            cond.compartor = &myComp::greater_than_or_equal;
+            compfunc = &myComp::greater_than_or_equal;
             break;
         case NE_OP:
-            cond.compartor = &myComp::not_equal_to;
+            compfunc = &myComp::not_equal_to;
             break;
         case NO_OP:
             printf("SelNode don't support no op!\n");
             break;
     }
     nAttrInfos = prevNode.GetAttrNum();
-    AttrInfoInRecord *attrInfos;
+    attrInfos = new AttrInfoInRecord[nAttrInfos];
+
     AttrInfoInRecord *prevAttrInfos;
     prevNode.GetAttrList(prevAttrInfos);
     memcpy(attrInfos, prevAttrInfos, sizeof(AttrInfoInRecord) * nAttrInfos);
@@ -64,7 +65,7 @@ QL_SelNode::QL_SelNode(QL_Manager &qlm, QL_Node &prevNode, Condition cond) : QL_
                 }
 
             } else {
-                if (!strcmp(cond.rhsAttr.attrName, qlm.attrInfoArray[i].attrName)) {
+                if (!strcmp(cond.rhsAttr.attrName, qlm.totAttrInfoArr[i].attrName)) {
                     rightAttr = prevAttrInfos[i];
                     break;
                 }
@@ -83,7 +84,7 @@ RC QL_SelNode::GetNext(RM_Record &rec) {
         if (prevNode.GetNext(rec) == QL_EOF) return QL_EOF;
         char *buffer = rec.GetContent();
         if (cond.bRhsIsAttr) {   //右边是属性
-            if (cond.compartor(&buffer[leftAttr.offset], &buffer[rightAttr.offset], leftAttr.attrType,
+            if (compfunc(&buffer[leftAttr.offset], &buffer[rightAttr.offset], leftAttr.attrType,
                                max(leftAttr.attrLength, rightAttr.attrLength))) {
                 return 0;
             }
@@ -95,10 +96,10 @@ RC QL_SelNode::GetNext(RM_Record &rec) {
                 char rhsBuffer[leftAttr.attrLength];
                 memset(rhsBuffer, 0, leftAttr.attrLength);
                 memcpy(rhsBuffer, cond.rhsValue.data, strlen((char *)cond.rhsValue.data));
-                if (cond.compartor(&buffer[leftAttr.offset], rhsBuffer, leftAttr.attrType, leftAttr.attrLength)) {
+                if (compfunc(&buffer[leftAttr.offset], rhsBuffer, leftAttr.attrType, leftAttr.attrLength)) {
                     return 0;
                 }
-            } else if (cond.compartor(&buffer[leftAttr.offset], &cond.rhsValue.data, leftAttr.attrType, leftAttr.attrLength)) {
+            } else if (compfunc(&buffer[leftAttr.offset], cond.rhsValue.data, leftAttr.attrType, leftAttr.attrLength)) {
                 return 0;
             }
         }

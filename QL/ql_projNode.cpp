@@ -14,6 +14,7 @@ QL_ProjNode::QL_ProjNode(QL_Manager &qlm, QL_Node &prevNode, int nAttrs, const R
     nAttrInfos = nAttrs;
     tupleLength = 0;
     this->attrInfos = new AttrInfoInRecord[nAttrs];
+    this->offsetInPrev = new int[nAttrs];
     int i, j;
     for (i = 0; i < nAttrs; i++) {
         for (j = 0; j < nPrevAttrs; j++) {
@@ -23,6 +24,7 @@ QL_ProjNode::QL_ProjNode(QL_Manager &qlm, QL_Node &prevNode, int nAttrs, const R
                     memcpy(&attrInfos[i], &prevAttrList[j], sizeof(AttrInfoInRecord));
                     attrInfos[i].offset = tupleLength;
                     tupleLength += attrInfos[i].attrLength;
+                    offsetInPrev[i] = prevAttrList[j].offset;
                     break;
                 }
 
@@ -31,6 +33,7 @@ QL_ProjNode::QL_ProjNode(QL_Manager &qlm, QL_Node &prevNode, int nAttrs, const R
                     memcpy(&attrInfos[i], &prevAttrList[j], sizeof(AttrInfoInRecord));
                     attrInfos[i].offset = tupleLength;
                     tupleLength += attrInfos[i].attrLength;
+                    offsetInPrev[i] = prevAttrList[j].offset;
                     break;
                 }
             }
@@ -50,15 +53,18 @@ void QL_ProjNode::Open() {
 }
 
 RC QL_ProjNode::GetNext(RM_Record &rec) {
+    AttrInfoInRecord *prevAttrInfos;
+    prevNode.GetAttrList(prevAttrInfos);
     RM_Record record;
     if (prevNode.GetNext(record) == QL_EOF) {
         return QL_EOF;
     }
     int i;
     int base = 0;
-    char *prevRecord = rec.GetContent();
+    char *prevRecord = record.GetContent();
+    //投影操作
     for(i = 0; i < nAttrInfos; i++) {
-        memcpy(buffer + base, prevRecord + attrInfos[i].offset, attrInfos[i].attrLength);
+        memcpy(buffer + base, prevRecord + offsetInPrev[i], attrInfos[i].attrLength);
         base += attrInfos[i].attrLength;
     }
     RID rid(-1, -1);

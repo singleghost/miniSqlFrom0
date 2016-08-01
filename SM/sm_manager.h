@@ -53,6 +53,8 @@ private:
     RM_FileHandler attrcat_fhandler;
 
     RM_FileScan rm_fileScan;
+    void ConvertFromAttrCatToAttrInfo(AttrInfoInRecord *attrInfo, AttrcatTuple *attrcatTuple);
+    void ConvertFromAttrCatToAttrInfo(DataAttrInfo *attrInfo, AttrcatTuple *attrcatTuple);
 public:
     SM_Manager  (IX_Manager &ixm, RM_Manager &rmm) : ixm(ixm), rmm(rmm) {}  // Constructor
     ~SM_Manager () {};                                  // Destructor
@@ -77,10 +79,11 @@ public:
     //一些提供给QL的接口
     bool IsAttrInOneOfRelations(const char *attrName, int nRelations, const char * const relations[]);
     bool IsRelationExist(const char *relName);
-    void FillDataAttrInfoForPrint(DataAttrInfo *attrInfos, int nAttrs, const RelAttr *relAttrs, int nRelations, const char * const relations[]);
-    AttrType GetAttrType(const char *relName, const char *attrName);
+    void FillDataAttrInfoForPrint(DataAttrInfo *dataAttrInfos, int nAttrs, const RelAttr *relAttrs, int nAttrInfos,
+                                  AttrInfoInRecord *attrInfos);
+    AttrType GetAttrType(const char *relName, const char *attrName, int nrelations, const char *const *relations);
     void FillRelCatTuples(RelcatTuple *relcatTuples, int nRelations, const char * const relations[]);
-    void FillAttrInfoInRecords(AttrInfoInRecord *attrInfoInRecords, int nRelations, const RelcatTuple *relCatTuples);
+    void FillAttrInfoInRecords(AttrInfoInRecord *attrInfos, int nRelations, const RelcatTuple *relCatTuples);
 
     static void createRelCatTuple(const char *relName, int tupleLength, int attrCount, int indexCount, char *relcat_rec);
     static void createAttrCatTuple(const char *relName, const char *attrName, int offset, AttrType attrType, int attrLength, int indexNo, char *attrcat_rec);

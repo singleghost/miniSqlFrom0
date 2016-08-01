@@ -62,6 +62,7 @@ public:
 
 private:
     char *buffer;
+    int *offsetInPrev;      //投影的属性在前一个节点的元组中的偏移
     QL_Node &prevNode;      //前一个节点
 };
 
@@ -81,6 +82,7 @@ public:
 private:
     QL_Node &prevNode;  //前一个节点
     Condition cond;   //选择条件
+    bool (*compfunc)(void *value1, void *value2, AttrType attrType, int attrLength);
 
     AttrInfoInRecord leftAttr;
     AttrInfoInRecord rightAttr;
@@ -143,10 +145,10 @@ private:
     IX_Manager &ixm;
     RM_Manager &rmm;
 
-    RelcatTuple *relcatTuples;
+    RelcatTuple *relcatTuples;  //每次操作所有的relation catalog
     int nRelations;
-    AttrInfoInRecord *attrInfoArray;
-    int nAttrInfoInRecord;
+    AttrInfoInRecord *totAttrInfoArr;    //每次操作要用到的所有的attrInfo
+    int nAttrInfoInOp;                  //每次操作用的的所有attrInfo的数量
 
     bool HasDupAttrName(int nAttrs, const RelAttr Attrs[]);
     bool HasDupTableName(int nRelations, const char * const relations[]);
@@ -158,17 +160,18 @@ private:
     QL_JoinNode * JoinTwoNode(QL_Node &lRelNode, QL_Node &rRelNode);
 
     void GetAttrInfoByRelAttr(AttrInfoInRecord &attrInfo, const RelAttr &relAttr);
+    AttrType GetAttrType(const RelAttr &relAttr);   //获取属性类型
     void CleanUp();     //调用增删改查操作之后的清理工作
 public:
     // Constructor
     QL_Manager (SM_Manager &smm, IX_Manager &ixm, RM_Manager &rmm);
     ~QL_Manager () {}                         // Destructor
-    RC Select (int           nSelAttrs,        // # attrs in Select clause
-               const RelAttr selAttrs[],       // attrs in Select clause
-               int           nRelations,       // # relations in From clause
-               char **relations, // relations in From clause
-               int           nConditions,      // # conditions in Where clause
-               const Condition conditions[]);  // conditions in Where clause
+    RC Select(int nSelAttrs,        // # attrs in Select clause
+              const RelAttr *selAttrs,       // attrs in Select clause
+              int nRelations,       // # relations in From clause
+              const char *const *relations, // relations in From clause
+              int nConditions,      // # conditions in Where clause
+              const Condition *conditions);  // conditions in Where clause
     RC Insert (const char  *relName,           // relation to insert into
                int         nValues,            // # values to insert
                const Value values[]);          // values to insert
@@ -184,5 +187,5 @@ public:
                const Condition conditions[]);  // conditions in Where clause
 };
 
-
+void PrintError(RC rc);
 #endif //MINISQLFROM0_QL_MANAGER_H

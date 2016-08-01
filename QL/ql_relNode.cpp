@@ -6,7 +6,7 @@
 #include "ql.h"
 
 QL_RelNode::QL_RelNode(QL_Manager &qlm, const char *const relation) : QL_Node(qlm) {
-    relName = new char[strlen(relation) + 1];
+    relName = new char[MAXNAME + 1];
     strcpy(relName, relation);
     int i;
     relCatTuple = new RelcatTuple[1];

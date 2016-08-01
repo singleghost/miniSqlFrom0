@@ -2,13 +2,14 @@
 // Created by 谢俊东 on 16/7/25.
 //
 
+#include <cassert>
 #include "ql.h"
 
 QL_Manager::QL_Manager(SM_Manager &smm, IX_Manager &ixm, RM_Manager &rmm) : smm(smm), ixm(ixm), rmm(rmm){
-    nAttrInfoInRecord = 0;
+    nAttrInfoInOp = 0;
 }
 
-RC QL_Manager::Select(int nSelAttrs, const RelAttr *selAttrs, int nRelations, char **relations,
+RC QL_Manager::Select(int nSelAttrs, const RelAttr *selAttrs, int nRelations, const char *const *relations,
                       int nConditions, const Condition *conditions) {
     //语义检查
     /*-------------------------------------------------------------*/
@@ -35,14 +36,26 @@ RC QL_Manager::Select(int nSelAttrs, const RelAttr *selAttrs, int nRelations, ch
         return QL_ATTR_NOT_EXIST;
     }
 
+    /*-------------------------------------------------------------*/
+    //构建查询计划树
+    this->nRelations = nRelations;
+
+    //填充relcatTuples和AttrInfoInRecords数组,查询所需的必要信息
+    relcatTuples = new RelcatTuple[nRelations];
+    smm.FillRelCatTuples(relcatTuples, nRelations, relations);
+    int i, j;
+    for(i = 0; i < nRelations; i++) {
+        nAttrInfoInOp += relcatTuples[i].attrCount;
+        //查询所有表的属性数量之和
+    }
+    totAttrInfoArr = new AttrInfoInRecord[nAttrInfoInOp];
+    smm.FillAttrInfoInRecords(totAttrInfoArr, nRelations, relcatTuples);
+
     //属性和比较值(属性)的类型是否一致
     if (!CheckCondCompTypeConsistent(nConditions, conditions)) {
         return QL_INCOMPATIBLE_COMP_OP;
     }
 
-    /*-------------------------------------------------------------*/
-    //构建查询计划树
-    int i, j;
     QL_RelNode *relNodes[nRelations];
     for (i = 0; i < nRelations; i++) {
         relNodes[i] = new QL_RelNode(*this, relations[i]);
@@ -64,22 +77,11 @@ RC QL_Manager::Select(int nSelAttrs, const RelAttr *selAttrs, int nRelations, ch
     topNode = &projNode;        //query plan tree completed
     RM_Record rec;
 
-    //填充relcatTuples和AttrInfoInRecords数组,查询所需的必要信息
-    relcatTuples = new RelcatTuple[nRelations];
-    smm.FillRelCatTuples(relcatTuples, nRelations, relations);
-
-    for(i = 0; i < nRelations; i++) {
-        nAttrInfoInRecord += relcatTuples[i].attrCount;
-        //查询所有表的属性数量之和
-    }
-    attrInfoArray = new AttrInfoInRecord[nAttrInfoInRecord];
-    smm.FillAttrInfoInRecords(attrInfoArray, nRelations, relcatTuples);
-
     //fill DataAttrInfo数组
 
     DataAttrInfo *attributes = new DataAttrInfo[nSelAttrs];
     //填充attributes
-    smm.FillDataAttrInfoForPrint(attributes, nSelAttrs, selAttrs, nRelations, relations);
+    smm.FillDataAttrInfoForPrint(attributes, nSelAttrs, selAttrs, nAttrInfoInOp, totAttrInfoArr);
     Printer p(attributes, nSelAttrs);
     p.PrintHeader(cout);
     topNode->Open();
@@ -101,18 +103,22 @@ RC QL_Manager::Insert(const char *relName, int nValues, const Value *values) {
 
     relcatTuples = new RelcatTuple;
     smm.FillRelCatTuples(relcatTuples, 1, &relName);
-    nAttrInfoInRecord = relcatTuples->attrCount;
-    attrInfoArray = new AttrInfoInRecord[relcatTuples->attrCount];
-    smm.FillAttrInfoInRecords(attrInfoArray, 1, relcatTuples);
+    nAttrInfoInOp = relcatTuples->attrCount;
+    totAttrInfoArr = new AttrInfoInRecord[relcatTuples->attrCount];
+    smm.FillAttrInfoInRecords(totAttrInfoArr, 1, relcatTuples);
 
     char *buffer = new char[relcatTuples->tupleLength];
     int offset = 0;
     for(int i = 0; i < nValues; i++) {
-        memcpy(buffer + offset, values[i].data, attrInfoArray[i].attrLength);
-        offset += attrInfoArray[i].attrLength;
+        memcpy(buffer + offset, values[i].data, totAttrInfoArr[i].attrLength);
+        offset += totAttrInfoArr[i].attrLength;
     }
     RID rid;
     rm_fileHandler.InsertRec(buffer, rid);
+    rmm.CloseFile(rm_fileHandler);
+    //TODO 对index的处理
+
+    CleanUp();
     return 0;
 }
 
@@ -139,10 +145,10 @@ RC QL_Manager::Update(const char *relName, const RelAttr &updAttr, const int bIs
     }
     relcatTuples = new RelcatTuple;
     smm.FillRelCatTuples(relcatTuples, 1, &relName);
-    nAttrInfoInRecord = relcatTuples->attrCount;
-    attrInfoArray = new AttrInfoInRecord[relcatTuples->attrCount];
+    nAttrInfoInOp = relcatTuples->attrCount;
+    totAttrInfoArr = new AttrInfoInRecord[relcatTuples->attrCount];
 
-    smm.FillAttrInfoInRecords(attrInfoArray, 1, relcatTuples);
+    smm.FillAttrInfoInRecords(totAttrInfoArr, 1, relcatTuples);
     AttrInfoInRecord updAttrInfo;
     GetAttrInfoByRelAttr(updAttrInfo, updAttr);
     AttrInfoInRecord rhsAttrInfo;
@@ -155,10 +161,10 @@ RC QL_Manager::Update(const char *relName, const RelAttr &updAttr, const int bIs
     RM_FileHandler rm_fileHandler;
     rmm.OpenFile(relName, rm_fileHandler);
 
-    DataAttrInfo *attributes = new DataAttrInfo[nAttrInfoInRecord];
-    memcpy(attributes, attrInfoArray, sizeof(DataAttrInfo) * nAttrInfoInRecord);
+    DataAttrInfo *attributes = new DataAttrInfo[nAttrInfoInOp];
+    memcpy(attributes, totAttrInfoArr, sizeof(DataAttrInfo) * nAttrInfoInOp);
     //填充attributes
-    Printer p(attributes, nAttrInfoInRecord);
+    Printer p(attributes, nAttrInfoInOp);
     p.PrintHeader(cout);
     topNode->Open();
 
@@ -175,6 +181,7 @@ RC QL_Manager::Update(const char *relName, const RelAttr &updAttr, const int bIs
     }
     p.PrintFooter(cout);
     topNode->Close();
+    rmm.CloseFile(rm_fileHandler);
     CleanUp();
     return 0;
 }
@@ -197,29 +204,31 @@ RC QL_Manager::Delete(const char *relName, int nConditions, const Condition *con
     }
     relcatTuples = new RelcatTuple;
     smm.FillRelCatTuples(relcatTuples, 1, &relName);
-    nAttrInfoInRecord = relcatTuples->attrCount;
-    attrInfoArray = new AttrInfoInRecord[relcatTuples->attrCount];
-    smm.FillAttrInfoInRecords(attrInfoArray, 1, relcatTuples);
+    nAttrInfoInOp = relcatTuples->attrCount;
+    totAttrInfoArr = new AttrInfoInRecord[relcatTuples->attrCount];
+    smm.FillAttrInfoInRecords(totAttrInfoArr, 1, relcatTuples);
 
     //执行计划
     RM_Record rec;
     RM_FileHandler rm_fileHandler;
     rmm.OpenFile(relName, rm_fileHandler);
 
-    DataAttrInfo *attributes = new DataAttrInfo[nAttrInfoInRecord];
-    memcpy(attributes, attrInfoArray, sizeof(DataAttrInfo) * nAttrInfoInRecord);
+    DataAttrInfo *attributes = new DataAttrInfo[nAttrInfoInOp];
+    memcpy(attributes, totAttrInfoArr, sizeof(DataAttrInfo) * nAttrInfoInOp);
     //填充attributes
-    Printer p(attributes, nAttrInfoInRecord);
+    Printer p(attributes, nAttrInfoInOp);
     p.PrintHeader(cout);
     topNode->Open();
 
     while(topNode->GetNext(rec) != QL_EOF) {
+        //TODO
         char *buffer = rec.GetContent();
         rm_fileHandler.DeleteRec(rec.GetRid());
         p.Print(cout, buffer);
     }
     p.PrintFooter(cout);
     topNode->Close();
+    rmm.CloseFile(rm_fileHandler);
     CleanUp();
     return 0;
 }
@@ -264,7 +273,7 @@ bool QL_Manager::HasDupTableName(int nRelations, const char *const *relations) {
 bool QL_Manager::CheckAttrValid(int nAttrs, const RelAttr *Attrs, int nRelations, const char *const relations[]) {
     int i, j;
     for (i = 0; i < nAttrs; i++) {
-        if (Attrs[i].relName != NULL) {  //如果没有指定表名
+        if (Attrs[i].relName == NULL) {  //如果没有指定表名
             if (!smm.IsAttrInOneOfRelations(Attrs[i].attrName, nRelations, relations)) {
                 return false;
             }
@@ -307,41 +316,53 @@ bool QL_Manager::CheckCondCompTypeConsistent(int nConditions, const Condition *c
     for (i = 0; i < nConditions; i++) {
         if (!conditions[i].bRhsIsAttr) {
             //如果右值是常量
-            if (smm.GetAttrType(conditions[i].lhsAttr.relName, conditions[i].lhsAttr.attrName) !=
-                conditions[i].rhsValue.type) {
-                return false;
-            }
+            if( GetAttrType(conditions[i].lhsAttr) != conditions[i].rhsValue.type) return false;
+        } else {
+            //如果右值是属性
+            if( GetAttrType(conditions[i].lhsAttr) != GetAttrType(conditions[i].rhsAttr)) return false;
         }
     }
     return true;
+}
+
+AttrType QL_Manager::GetAttrType(const RelAttr &relAttr) {
+    assert(totAttrInfoArr != NULL);
+    AttrInfoInRecord attrInfo;
+    GetAttrInfoByRelAttr(attrInfo, relAttr);
+    return attrInfo.attrType;
 }
 
 void QL_Manager::CleanUp(){
     if(relcatTuples) {
         delete [] relcatTuples;
     }
-    if(attrInfoArray) {
-        delete [] attrInfoArray;
+    if(totAttrInfoArr) {
+        delete [] totAttrInfoArr;
     }
 }
 
 
 void QL_Manager::GetAttrInfoByRelAttr(AttrInfoInRecord &attrInfo, const RelAttr &relAttr) {
     int i;
-    for(i = 0; i < nAttrInfoInRecord; i++) {
+    for(i = 0; i < nAttrInfoInOp; i++) {
         if(relAttr.relName) {
-            if(!strcmp(relAttr.relName, attrInfoArray[i].relName) &&
-               !strcmp(relAttr.attrName, attrInfoArray[i].attrName)) {
-                attrInfo = attrInfoArray[i];
+            if(!strcmp(relAttr.relName, totAttrInfoArr[i].relName) &&
+               !strcmp(relAttr.attrName, totAttrInfoArr[i].attrName)) {
+                attrInfo = totAttrInfoArr[i];
                 break;
             }
         } else {
-            if(!strcmp(relAttr.attrName, attrInfoArray[i].attrName)) {
-                attrInfo = attrInfoArray[i];
+            if(!strcmp(relAttr.attrName, totAttrInfoArr[i].attrName)) {
+                attrInfo = totAttrInfoArr[i];
                 break;
             }
 
         }
     }
 
+}
+
+char *error_msg[] = { "duplicate attribute name", "duplicate table name", "attribute not exist", "table not exist", "incompatible compare operators" ,"QL EOF"};
+void PrintError(RC rc) {
+    printf("Error: %s\n", error_msg[-1 - rc]);
 }

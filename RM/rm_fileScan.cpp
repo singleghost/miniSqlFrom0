@@ -97,7 +97,7 @@ RC RM_FileScan::GetNextRec(RM_Record &rec) {
     int page = cur_rid.getPageNum();
     int slot = cur_rid.getSlot();
     RM_PageHandler rm_pageHandler;
-    if (rc = rm_fileHandler.GetThisPage(page, rm_pageHandler)) return rc;
+    if (rc = rm_fileHandler.GetThisPage(page, rm_pageHandler)) return RM_EOF;   //如果不存在第0页
     while (true) {
 
         while (rm_pageHandler.GetNextRecord(slot, rec) == RM_PAGE_RECORD_EOF) {

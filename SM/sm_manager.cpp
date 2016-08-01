@@ -25,8 +25,8 @@ RC SM_Manager::CloseDb() {
 RC SM_Manager::CreateTable(const char *relName, int attrCount, AttrInfo *attributes) {
     RM_FileScan rm_fileScan;
     RM_Record rec;
-    rm_fileScan.OpenScan(relcat_fhandler, STRING, MAXNAME, 0, EQ_OP, (void *)relName);
-    if( rm_fileScan.GetNextRec(rec) != RM_EOF) {
+    rm_fileScan.OpenScan(relcat_fhandler, STRING, MAXNAME, 0, EQ_OP, (void *) relName);
+    if (rm_fileScan.GetNextRec(rec) != RM_EOF) {
         //重复的表名
         rm_fileScan.CloseScan();
         return SM_DUPLICATE_TABLE;
@@ -52,7 +52,7 @@ RC SM_Manager::CreateTable(const char *relName, int attrCount, AttrInfo *attribu
 
     //创建数据表文件
     rmm.CreateFile(relName, tupleLength);
-
+    rm_fileScan.CloseScan();
     return 0;
 }
 
@@ -61,7 +61,7 @@ RC SM_Manager::DropTable(const char *relName) {
     //删除relcat中的表记录
     rm_fileScan.OpenScan(relcat_fhandler, STRING, MAXNAME, 0, EQ_OP, (void *) relName);
     if (rm_fileScan.GetNextRec(rec) == RM_EOF) return SM_TABLE_NOT_EXIST;
-    int indexCount = ((RelcatTuple *)(rec.GetContent()))->indexCount;
+    int indexCount = ((RelcatTuple *) (rec.GetContent()))->indexCount;
     relcat_fhandler.DeleteRec(rec.GetRid());
 
     rm_fileScan.CloseScan();
@@ -74,7 +74,7 @@ RC SM_Manager::DropTable(const char *relName) {
     rm_fileScan.CloseScan();
 
     rmm.DestroyFile(relName);
-    for(int i = 0; i < indexCount; i++) {
+    for (int i = 0; i < indexCount; i++) {
         stringstream ss;
         ss << i;
         string extend;
@@ -98,11 +98,11 @@ RC SM_Manager::CreateIndex(const char *relName, const char *attrName) {
 
     RM_Record tRec;
     //检查属性是否已经建立索引
-    rm_fileScan.OpenScan(attrcat_fhandler, STRING, MAXNAME, 0, EQ_OP, (void *)relName);
-    while(rm_fileScan.GetNextRec(tRec) != RM_EOF) {
-        AttrcatTuple *attrcatTuple = (AttrcatTuple *)tRec.GetContent();
-        if(strncmp(attrcatTuple->attrName, attrName, MAXNAME) == 0) {
-            if(attrcatTuple->indexNo != -1) {
+    rm_fileScan.OpenScan(attrcat_fhandler, STRING, MAXNAME, 0, EQ_OP, (void *) relName);
+    while (rm_fileScan.GetNextRec(tRec) != RM_EOF) {
+        AttrcatTuple *attrcatTuple = (AttrcatTuple *) tRec.GetContent();
+        if (strncmp(attrcatTuple->attrName, attrName, MAXNAME) == 0) {
+            if (attrcatTuple->indexNo != -1) {
                 rm_fileScan.CloseScan();
                 return SM_DUPLICATE_INDEX;
             }
@@ -123,6 +123,7 @@ RC SM_Manager::CreateIndex(const char *relName, const char *attrName) {
     while (rm_fileScan.GetNextRec(attrRec) != RM_EOF) {
         if (strncmp(attrRec.GetContent() + MAXNAME, attrName, MAXNAME) == 0) break;
     }
+    rm_fileScan.CloseScan();
     AttrcatTuple *attrTuple = (AttrcatTuple *) attrRec.GetContent();
     attrTuple->indexNo = curIndexCnt;
 
@@ -151,11 +152,11 @@ RC SM_Manager::DropIndex(const char *relName, const char *attrName) {
         }
     }
     rm_fileScan.CloseScan();
-    if(!bAttrFound) {
+    if (!bAttrFound) {
         return SM_ATTR_NOT_FOUND;
     }
     AttrcatTuple *attrTuple = (AttrcatTuple *) attrRec.GetContent();
-    if(attrTuple->indexNo == -1) {
+    if (attrTuple->indexNo == -1) {
         return SM_NO_INDEX_ON_ATTR;
     }
     int indexNo = attrTuple->indexNo;
@@ -193,11 +194,13 @@ RC SM_Manager::Help() {
 
 RC SM_Manager::Help(const char *relName) {
     RM_Record rec;
-    rm_fileScan.OpenScan(relcat_fhandler, STRING, MAXNAME, 0, EQ_OP, (void *)relName);
+    rm_fileScan.OpenScan(relcat_fhandler, STRING, MAXNAME, 0, EQ_OP, (void *) relName);
     if (rm_fileScan.GetNextRec(rec) == RM_EOF) {
         printf("Table `%s` not exist\n", relName);
+        rm_fileScan.CloseScan();
         return SM_TABLE_NOT_EXIST;
     }
+    rm_fileScan.CloseScan();
     AttrcatTuple *attrcatTuple;
     char type[10];
     rm_fileScan.OpenScan(attrcat_fhandler, STRING, MAXNAME, 0, EQ_OP, (void *) relName);
@@ -232,20 +235,22 @@ RC SM_Manager::Print(const char *relName) {
     char *data;
 
     //先检查表是否存在
-    rfs.OpenScan(relcat_fhandler, STRING, MAXNAME, 0, EQ_OP, (void *)relName);
-    if(rfs.GetNextRec(rec) == RM_EOF)
+    rfs.OpenScan(relcat_fhandler, STRING, MAXNAME, 0, EQ_OP, (void *) relName);
+    if (rfs.GetNextRec(rec) == RM_EOF) {
+        rfs.CloseScan();
         return SM_TABLE_NOT_EXIST;
+    }
     rfs.CloseScan();
-    relcatTuple = (RelcatTuple *)rec.GetContent();
+    relcatTuple = (RelcatTuple *) rec.GetContent();
     attrCount = relcatTuple->attrCount; //获取表的属性数量
 
     attributes = new DataAttrInfo[attrCount];
     //填充attributes
-    rfs.OpenScan(attrcat_fhandler, STRING, MAXNAME, 0, EQ_OP, (void *)relName);
+    rfs.OpenScan(attrcat_fhandler, STRING, MAXNAME, 0, EQ_OP, (void *) relName);
     int i = 0;
 
-    while(rfs.GetNextRec(rec) != RM_EOF) {
-        attrcatTuple = (AttrcatTuple *)rec.GetContent();
+    while (rfs.GetNextRec(rec) != RM_EOF) {
+        attrcatTuple = (AttrcatTuple *) rec.GetContent();
         strncpy(attributes[i].attrName, attrcatTuple->attrName, MAXNAME);
         strncpy(attributes[i].relName, attrcatTuple->relName, MAXNAME);
         attributes[i].offset = attrcatTuple->offset;
@@ -261,9 +266,9 @@ RC SM_Manager::Print(const char *relName) {
     p.PrintHeader(cout);
 
 // Open the file and set up the file scan
-    if(relName == "relcat") {
+    if (relName == "relcat") {
         rfh = relcat_fhandler;
-    } else if(relName == "attrcat") {
+    } else if (relName == "attrcat") {
         rfh = attrcat_fhandler;
     } else {
         rmm.OpenFile(relName, rfh);
@@ -272,8 +277,8 @@ RC SM_Manager::Print(const char *relName) {
 
 // Print each tuple
     while (rfs.GetNextRec(rec) != RM_EOF) {
-            data = rec.GetContent();
-            p.Print(cout, data);
+        data = rec.GetContent();
+        p.Print(cout, data);
     }
 
 // Print the footer information
@@ -281,8 +286,10 @@ RC SM_Manager::Print(const char *relName) {
 
 // Close the scan, file, delete the attributes pointer, etc.
     rfs.CloseScan();
-    if(relName != "relcat" && relName != "attrcat") rmm.CloseFile(rfh);
-    delete [] attributes;
+    if (relName != "relcat" && relName != "attrcat") {
+        rmm.CloseFile(rfh);
+    }
+    delete[] attributes;
     return 0;
 }
 
@@ -298,19 +305,19 @@ RC SM_Manager::Load(const char *relName, const char *fileName) {
     RM_FileScan rfs;
     char *data;
 // Fill in the attributes structure, define the RM_FileHandle
-    rfs.OpenScan(relcat_fhandler, STRING, MAXNAME, 0, EQ_OP, (void *)relName);
-    if(rfs.GetNextRec(rec) == RM_EOF)
+    rfs.OpenScan(relcat_fhandler, STRING, MAXNAME, 0, EQ_OP, (void *) relName);
+    if (rfs.GetNextRec(rec) == RM_EOF)
         return -1;
-    relcatTuple = (RelcatTuple *)rec.GetContent();
+    relcatTuple = (RelcatTuple *) rec.GetContent();
     attrCount = relcatTuple->attrCount; //获取表的属性数量
     rfs.CloseScan();
 
     attributes = new DataAttrInfo[attrCount];
-    rfs.OpenScan(attrcat_fhandler, STRING, MAXNAME, 0, EQ_OP, (void *)relName);
+    rfs.OpenScan(attrcat_fhandler, STRING, MAXNAME, 0, EQ_OP, (void *) relName);
     int i = 0;
     int tupleLength = 0;
-    while(rfs.GetNextRec(rec) != RM_EOF) {
-        attrcatTuple = (AttrcatTuple *)rec.GetContent();
+    while (rfs.GetNextRec(rec) != RM_EOF) {
+        attrcatTuple = (AttrcatTuple *) rec.GetContent();
         strncpy(attributes[i].attrName, attrcatTuple->attrName, MAXNAME);
         strncpy(attributes[i].relName, attrcatTuple->relName, MAXNAME);
         attributes[i].offset = attrcatTuple->offset;
@@ -320,27 +327,29 @@ RC SM_Manager::Load(const char *relName, const char *fileName) {
         tupleLength += attributes[i].attrLength;
         i++;
     }
+    rfs.CloseScan();
     RM_FileHandler rm_fileHandler;
     rmm.OpenFile(relName, rm_fileHandler);
     RID rid;
 
     FILE *fp = fopen(fileName, "r");
-    if(fp == NULL) {
+    if (fp == NULL) {
         return SM_DATA_FILE_NOT_EXIST;
     }
     char *line = new char[tupleLength * 5]; //设置一个足够大的能容纳一个tuple的数组
     char *attrEnd;
     char tuple[tupleLength];
-    while(!feof(fp)) {
+    while (!feof(fp)) {
         memset(line, 0, sizeof(line));
         fgets(line, tupleLength * 5, fp);   //读取文件的一行
-        if(strcmp(line, "") == 0) break;    //判断是否读取了空行
+        if (strcmp(line, "") == 0) break;    //判断是否读取了空行
         char *attrBegin = line;
         memset(tuple, 0, sizeof(tuple));    //清零
-        for(i = 0; i < attrCount; i++) {    //循环读取每一个属性
-            attrEnd= strchr(attrBegin, ',');
+        for (i = 0; i < attrCount; i++) {    //循环读取每一个属性
+            attrEnd = strchr(attrBegin, ',');
             if (attributes[i].attrType == STRING) {
-                strncpy((char *) (tuple + attributes[i].offset), attrBegin, min(attributes[i].attrLength, attrEnd - attrBegin));
+                strncpy((char *) (tuple + attributes[i].offset), attrBegin,
+                        min(attributes[i].attrLength, attrEnd - attrBegin));
             }
             else if (attributes[i].attrType == INT) {
                 sscanf(attrBegin, "%d", (int *) (tuple + attributes[i].offset));
@@ -348,13 +357,13 @@ RC SM_Manager::Load(const char *relName, const char *fileName) {
             else if (attributes[i].attrType == FLOAT) {
                 sscanf(attrBegin, "%f", (float *) (tuple + attributes[i].offset));
             }
-            if(attrEnd == NULL) break;  //最后一个属性
+            if (attrEnd == NULL) break;  //最后一个属性
             attrBegin = attrEnd + 1;
         }
         rm_fileHandler.InsertRec(tuple, rid);
     }
     rmm.CloseFile(rm_fileHandler);
-    delete [] line;
+    delete[] line;
     return 0;
 }
 
@@ -384,21 +393,26 @@ void SM_Manager::createAttrCatTuple(const char *relName, const char *attrName, i
 
 bool SM_Manager::IsRelationExist(const char *relName) {
     RM_Record rec;
-    rm_fileScan.OpenScan(relcat_fhandler, STRING, MAXNAME, 0, EQ_OP, (void *)relName);
+    rm_fileScan.OpenScan(relcat_fhandler, STRING, MAXNAME, 0, EQ_OP, (void *) relName);
     if (rm_fileScan.GetNextRec(rec) == RM_EOF) {
         printf("Table `%s` not exist\n", relName);
-        return SM_TABLE_NOT_EXIST;
+        rm_fileScan.CloseScan();
+        return false;
     }
     rm_fileScan.CloseScan();
+    return true;
 }
 
 bool SM_Manager::IsAttrInOneOfRelations(const char *attrName, int nRelations, const char *const *relations) {
     RM_Record rec;
-    rm_fileScan.OpenScan(attrcat_fhandler, STRING, MAXNAME, MAXNAME, EQ_OP, (void *)attrName);
-    while(rm_fileScan.GetNextRec(rec) != RM_EOF) {
-        AttrcatTuple *attrcatTuple = (AttrcatTuple *)rec.GetContent();
-        for(int i = 0; i < nRelations; i++) {
-            if(strcmp(attrcatTuple->relName, relations[i]) == 0) return true;
+    rm_fileScan.OpenScan(attrcat_fhandler, STRING, MAXNAME, MAXNAME, EQ_OP, (void *) attrName);
+    while (rm_fileScan.GetNextRec(rec) != RM_EOF) {
+        AttrcatTuple *attrcatTuple = (AttrcatTuple *) rec.GetContent();
+        for (int i = 0; i < nRelations; i++) {
+            if (strcmp(attrcatTuple->relName, relations[i]) == 0) {
+                rm_fileScan.CloseScan();
+                return true;
+            }
         }
 
     }
@@ -407,12 +421,13 @@ bool SM_Manager::IsAttrInOneOfRelations(const char *attrName, int nRelations, co
 
 }
 
-AttrType SM_Manager::GetAttrType(const char *relName, const char *attrName) {
+AttrType
+SM_Manager::GetAttrType(const char *relName, const char *attrName, int nrelations, const char *const *relations) {
     RM_Record rec;
-    rm_fileScan.OpenScan(attrcat_fhandler, STRING, MAXNAME, 0, EQ_OP, (void *)relName);
-    while(rm_fileScan.GetNextRec(rec) != RM_EOF) {
-        AttrcatTuple *attrcatTuple = (AttrcatTuple *)rec.GetContent();
-        if(strcmp(attrcatTuple->attrName, attrName) == 0) {
+    rm_fileScan.OpenScan(attrcat_fhandler, STRING, MAXNAME, 0, EQ_OP, (void *) relName);
+    while (rm_fileScan.GetNextRec(rec) != RM_EOF) {
+        AttrcatTuple *attrcatTuple = (AttrcatTuple *) rec.GetContent();
+        if (strcmp(attrcatTuple->attrName, attrName) == 0) {
             rm_fileScan.CloseScan();
             return attrcatTuple->attrType;
         }
@@ -420,75 +435,96 @@ AttrType SM_Manager::GetAttrType(const char *relName, const char *attrName) {
     rm_fileScan.CloseScan();
 
 }
-char *error_msgs[20] = {"Table not exist", "duplicate table", "duplicate index", "data file not exist in `load` command",
+
+char *error_msgs[20] = {"Table not exist", "duplicate table", "duplicate index",
+                        "data file not exist in `load` command",
                         "attribute not found", "no index built on specified attribute"};
+
 void SM_PrintError(RC rc) {
     printf("Error: ");
-    int index = 0 - rc -1;
-    printf("%s\n", error_msgs[index]);
+    printf("%s\n", error_msgs[-1 - rc]);
 }
 
-void SM_Manager::FillRelCatTuples(RelcatTuple *relcatTuples, int nRelations, const char *const *relations){
+void SM_Manager::FillRelCatTuples(RelcatTuple *relcatTuples, int nRelations, const char *const *relations) {
     int i;
     RM_Record rec;
-    for(i = 0; i < nRelations; i++) {
-        rm_fileScan.OpenScan(relcat_fhandler, STRING, MAXNAME, 0, EQ_OP, (void *)relations[i]);
-        if( rm_fileScan.GetNextRec(rec) == RM_EOF) assert(false);
+    for (i = 0; i < nRelations; i++) {
+        rm_fileScan.OpenScan(relcat_fhandler, STRING, MAXNAME, 0, EQ_OP, (void *) relations[i]);
+        if (rm_fileScan.GetNextRec(rec) == RM_EOF) assert(false);
         memcpy(&relcatTuples[i], rec.GetContent(), sizeof(RelcatTuple));
         rm_fileScan.CloseScan();
     }
 }
 
-void SM_Manager::FillAttrInfoInRecords(AttrInfoInRecord *attrInfoInRecords, int nRelations, const RelcatTuple *relCatTuples) {
-    int i,j,m;
+void SM_Manager::FillAttrInfoInRecords(AttrInfoInRecord *attrInfos, int nRelations, const RelcatTuple *relCatTuples) {
+    int i, j, m;
     int nAttrsOfRel;
     int baseOffset = 0;
     RM_Record rec;
-    for(i = 0; i < nRelations; i++) {
+    m = 0;
+    for (i = 0; i < nRelations; i++) {
         nAttrsOfRel = relCatTuples[i].attrCount;
 
-        for(j = 0; j < nAttrsOfRel; j++) {
-            rm_fileScan.OpenScan(attrcat_fhandler, STRING, MAXNAME, 0, EQ_OP, (void *)relCatTuples[i].relName);
-            while(rm_fileScan.GetNextRec(rec) != RM_EOF) {
-                memcpy(&attrInfoInRecords[i], rec.GetContent(), sizeof(AttrInfoInRecord));
-                attrInfoInRecords[i].offset += baseOffset;
-            }
-            rm_fileScan.CloseScan();
+        rm_fileScan.OpenScan(attrcat_fhandler, STRING, MAXNAME, 0, EQ_OP, (void *) relCatTuples[i].relName);
+        while (rm_fileScan.GetNextRec(rec) != RM_EOF) {
+            AttrcatTuple *attrcatTuple = (AttrcatTuple *) rec.GetContent();
+            ConvertFromAttrCatToAttrInfo(&attrInfos[m], attrcatTuple);
+            attrInfos[m].offset += baseOffset;
+            m++;
         }
-        baseOffset = relCatTuples[i].tupleLength;
+        rm_fileScan.CloseScan();
+        baseOffset += relCatTuples[i].tupleLength;
     }
 
 }
 
-void SM_Manager::FillDataAttrInfoForPrint(DataAttrInfo *attrInfos, int nAttrs, const RelAttr *relAttrs, int nRelations,
-                                          const char *const *relations) {
-    assert(sizeof(DataAttrInfo) == sizeof(AttrcatTuple));
+void SM_Manager::FillDataAttrInfoForPrint(DataAttrInfo *dataAttrInfos, int nAttrs, const RelAttr *relAttrs, int nAttrInfos,
+                                          AttrInfoInRecord *attrInfos) {
     assert(sizeof(DataAttrInfo) == sizeof(AttrInfoInRecord));
-
-    int i,j,m;
-    bool bFound = false;
-    RM_Record rec;
-    for(i = 0; i < nAttrs; i++) {
-        rm_fileScan.OpenScan(attrcat_fhandler, STRING, MAXNAME, MAXNAME, EQ_OP, relAttrs[i].attrName);
-        while(rm_fileScan.GetNextRec(rec) != RM_EOF) {
-            if(relAttrs[i].relName != NULL) {
-                if(strcmp(relAttrs[i].relName, ((AttrcatTuple *)rec.GetContent())->relName) == 0) {
-                    memcpy(&attrInfos[i], rec.GetContent(), sizeof(DataAttrInfo));
+    int i, j;
+    int base = 0;
+    for (i = 0; i < nAttrs; i++) {
+        for(j = 0; j < nAttrInfos; j++) {
+            if (relAttrs[i].relName != NULL) {
+                if (strcmp(relAttrs[i].relName, attrInfos[j].relName) == 0 && !strcmp(relAttrs[i].attrName, attrInfos[j].attrName)) {
+                    memcpy(&dataAttrInfos[i], &attrInfos[j], sizeof(DataAttrInfo));
+                    dataAttrInfos[i].offset = base;
+                    base += dataAttrInfos[i].attrLength;
                     break;
                 }
             } else {
                 //如果relName省略
-                for(j = 0; j < nRelations; j++) {
-                    AttrcatTuple *attrcatTuple = (AttrcatTuple *)rec.GetContent();
-                   if(strcmp(attrcatTuple->relName, relations[i]) == 0) {
-                       memcpy(&attrInfos[i], attrcatTuple, sizeof(DataAttrInfo));
-                       bFound = true;
-                       break;
-                   }
+                if(!strcmp(relAttrs[i].attrName, attrInfos[j].attrName)) {
+                    memcpy(&dataAttrInfos[i], &attrInfos[j], sizeof(DataAttrInfo));
+                    dataAttrInfos[i].offset = base;
+                    base += dataAttrInfos[i].attrLength;
+                    break;
                 }
             }
-            if(bFound) break;
         }
-        rm_fileScan.CloseScan();
     }
+}
+
+void SM_Manager::ConvertFromAttrCatToAttrInfo(AttrInfoInRecord *attrInfo, AttrcatTuple *attrcatTuple) {
+    memset(attrInfo->relName, 0, MAXNAME + 1);
+    memset(attrInfo->attrName, 0, MAXNAME + 1);
+    memcpy(attrInfo->relName, attrcatTuple->relName, MAXNAME);
+    memcpy(attrInfo->attrName, attrcatTuple->attrName, MAXNAME);
+    attrInfo->attrLength = attrcatTuple->attrLength;
+    attrInfo->attrType = attrcatTuple->attrType;
+    attrInfo->offset = attrcatTuple->offset;
+    attrInfo->indexNo = attrcatTuple->indexNo;
+
+}
+
+void SM_Manager::ConvertFromAttrCatToAttrInfo(DataAttrInfo *attrInfo, AttrcatTuple *attrcatTuple) {
+    memset(attrInfo->relName, 0, MAXNAME + 1);
+    memset(attrInfo->attrName, 0, MAXNAME + 1);
+    memcpy(attrInfo->relName, attrcatTuple->relName, MAXNAME);
+    memcpy(attrInfo->attrName, attrcatTuple->attrName, MAXNAME);
+    attrInfo->attrLength = attrcatTuple->attrLength;
+    attrInfo->attrType = attrcatTuple->attrType;
+    attrInfo->offset = attrcatTuple->offset;
+    attrInfo->indexNo = attrcatTuple->indexNo;
+
 }

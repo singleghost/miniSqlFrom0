@@ -64,7 +64,8 @@ RC QL_Manager::Select(int nSelAttrs, const RelAttr *selAttrs, int nRelations, co
 
     QL_Node *topNode = relNodes[0]; //topNode始终指向查询计划树的根节点
     for (i = 1; i < nRelations; i++) {
-        joinNodes[i - 1] = JoinTwoNode(*topNode, *relNodes[i]);  //构建一颗左深树
+        joinNodes[i - 1] = new QL_JoinNode(*this, *topNode, *relNodes[i]);  //构建一颗左深树
+        topNode = joinNodes[i - 1];
     }
 
     QL_SelNode *selNodes[nConditions];
@@ -231,12 +232,6 @@ RC QL_Manager::Delete(const char *relName, int nConditions, const Condition *con
     rmm.CloseFile(rm_fileHandler);
     CleanUp();
     return 0;
-}
-
-
-QL_JoinNode * QL_Manager::JoinTwoNode(QL_Node &lRelNode, QL_Node &rRelNode) {
-    QL_JoinNode *joinNode = new QL_JoinNode(*this, lRelNode, rRelNode);
-    return joinNode;
 }
 
 bool QL_Manager::HasDupAttrName(int nAttrs, const RelAttr *Attrs) {

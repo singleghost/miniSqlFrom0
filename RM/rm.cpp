@@ -15,7 +15,6 @@ RC RM_Manager::CreateFile(string filename, int recordSize){
     lseek(fd, sizeof(fileHeader), L_SET);
     RM_FileHeader rm_fileHeader;
     rm_fileHeader.RecordSize = recordSize;
-    rm_fileHeader.numOfPages = 0;
     rm_fileHeader.nMaxRecordsPerPage = (PAGE_SIZE - sizeof(pageHeader) - sizeof(RM_PageHeader)) / (recordSize + 1);
     write(fd, &rm_fileHeader, sizeof(RM_FileHeader));
     close(fd);

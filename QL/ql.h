@@ -157,7 +157,6 @@ private:
     bool CheckCondAttrValid(int nRelations, const char *const relations[], int nCondions, const Condition conditions[]);
 
     bool CheckCondCompTypeConsistent(int nConditions, const Condition *conditions);
-    QL_JoinNode * JoinTwoNode(QL_Node &lRelNode, QL_Node &rRelNode);
 
     void GetAttrInfoByRelAttr(AttrInfoInRecord &attrInfo, const RelAttr &relAttr);
     AttrType GetAttrType(const RelAttr &relAttr);   //获取属性类型

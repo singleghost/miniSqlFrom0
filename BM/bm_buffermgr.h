@@ -46,6 +46,7 @@ public:
     void ReadPage(int fd, int pageNum, char *dest);     //从磁盘将文件的一个Page读入dest数组,dest数组大小至少为PAGE SIZE
     void WritePage(int fd, int pageNum , char *src);    //将src数组内PAGE SIZE个字节写入磁盘上的文件
     void PrintPageDescTable();                          //打印当前Page description Table的值
+    void FlushPages(int fd);                  //把文件的所有页写回硬盘,同时删除hashTable里的相关页
 private:
     RC InternalAlloc(int &slot);        //找到一个可用的slot,优先从free list中找,没有的话就把unpin的Page替换出去
     RC InitPageDesc(int fd, int pageNum, int slot); //初始化Page Description项

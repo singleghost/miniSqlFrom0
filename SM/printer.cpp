@@ -190,9 +190,9 @@ void Printer::Print(ostream &c, const void * const data[])
             else
                 Spaces(strlen(psHeader[i]), strlen(strSpace));
         }
-        if (attributes[i].attrType == FLOAT) {
+        if (attributes[i].attrType == FLOAT) {  //打印小数点后两位
             memcpy (&b, data[i], sizeof(float));
-            sprintf(strSpace, "%f",b);
+            sprintf(strSpace, "%.2f",b);
             c << strSpace;
             if (strlen(psHeader[i]) < 12)
                 Spaces(12, strlen(strSpace));
@@ -256,7 +256,7 @@ void Printer::Print(ostream &c, const char * const data)
         }
         if (attributes[i].attrType == FLOAT) {
             memcpy (&b, (data+attributes[i].offset), sizeof(float));
-            sprintf(strSpace, "%f",b);
+            sprintf(strSpace, "%.2f",b);
             c << strSpace;
             if (strlen(psHeader[i]) < 12)
                 Spaces(12, strlen(strSpace));

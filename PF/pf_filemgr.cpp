@@ -43,8 +43,10 @@ RC PF_Manager::CloseFile(FileHandler &fhandler){
         lseek(fhandler.fd, 0, L_SET);
         write(fhandler.fd, &fhandler.fh, sizeof(fileHeader));
     }
-    fhandler.ForcePages();
+    bufferMgr->FlushPages(fhandler.fd);
+//    fhandler.ForcePages();
     close(fhandler.fd); //关闭文件描述符
+
     fhandler.fd = -1;   //把fd改成一个不合法的值,防止被误用
     return 0;
 }

@@ -17,9 +17,12 @@ QL_JoinNode::QL_JoinNode(QL_Manager &qlm, QL_Node &leftNode, QL_Node &rightNode)
     attrInfos = new AttrInfoInRecord[nAttrInfos];
 
     memcpy(attrInfos, leftAttrInfos, sizeof(AttrInfoInRecord) * lSubNode.GetAttrNum());
-    memcpy(attrInfos + sizeof(AttrInfoInRecord) * lSubNode.GetAttrNum(), rightAttrInfos,
+    memcpy(attrInfos + lSubNode.GetAttrNum(), rightAttrInfos,
            sizeof(AttrInfoInRecord) * rSubNode.GetAttrNum());
-
+    int i;
+    for(i = 0; i < rSubNode.GetAttrNum(); i++) {
+        attrInfos[lSubNode.GetAttrNum() + i].offset += lSubNode.GetTupleLength();
+    }
     buffer = new char[tupleLength];
 }
 

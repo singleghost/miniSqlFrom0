@@ -25,7 +25,6 @@ struct RM_PageHeader {
 struct RM_FileHeader {
     int RecordSize;         //每条记录的长度
     int nMaxRecordsPerPage; //一页最多能存储多少条记录
-    int numOfPages;         //文件头不算,总共有多少页
 };  //RM模块的文件头
 
 //用slot和pageNum来标识record,RID是对slot和pageNum的简单封装

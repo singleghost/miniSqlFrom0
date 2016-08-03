@@ -117,8 +117,23 @@ RC QL_Manager::Insert(const char *relName, int nValues, const Value *values) {
     RID rid;
     rm_fileHandler.InsertRec(buffer, rid);
     rmm.CloseFile(rm_fileHandler);
-    //TODO 对index的处理
-
+    //对index的处理
+    int i;
+    bool bHasIndex = false;
+    //判断有没有属性有index
+    for(i = 0; i < nAttrInfoInOp; i++) {
+        if(totAttrInfoArr[i].indexNo != NO_INDEX) {
+            bHasIndex = true;
+            break;
+        }
+    }
+    //如果有属性有索引,那么插入索引
+    if(bHasIndex) {
+        IX_IndexHandler ix_indexHandler;
+        ixm.OpenIndex(relName, totAttrInfoArr[i].indexNo, ix_indexHandler);
+        ix_indexHandler.InsertEntry(&buffer[totAttrInfoArr[i].offset], rid);
+        ixm.CloseIndex(ix_indexHandler);
+    }
     CleanUp();
     return 0;
 }
@@ -157,6 +172,12 @@ RC QL_Manager::Update(const char *relName, const RelAttr &updAttr, const int bIs
         GetAttrInfoByRelAttr(rhsAttrInfo, rhsRelAttr);
         if(rhsAttrInfo.attrType != updAttrInfo.attrType) return QL_INCOMPATIBLE_COMP_OP;
     }
+
+    //检查update的属性是否建立了索引,如果建立了索引,不能通过该属性indexscan来查询
+    IX_IndexHandler ix_indexHandler;
+    if(updAttrInfo.indexNo != NO_INDEX) {
+        ixm.OpenIndex(relName, updAttrInfo.indexNo, ix_indexHandler);
+    }
     //执行计划
     RM_Record rec;
     RM_FileHandler rm_fileHandler;
@@ -179,10 +200,18 @@ RC QL_Manager::Update(const char *relName, const RelAttr &updAttr, const int bIs
         }
         rm_fileHandler.UpdateRec(rec);
         p.Print(cout, buffer);
+
+        //如果有索引,改变索引
+        if(updAttrInfo.indexNo != NO_INDEX) {
+            ix_indexHandler.DeleteEntry(&buffer[updAttrInfo.offset], rec.GetRid());
+            ix_indexHandler.InsertEntry(bIsValue ? rhsValue.data : &buffer[rhsAttrInfo.offset], rec.GetRid());
+        }
     }
+
     p.PrintFooter(cout);
     topNode->Close();
     rmm.CloseFile(rm_fileHandler);
+    if(updAttrInfo.indexNo != NO_INDEX) ixm.CloseIndex(ix_indexHandler);
     CleanUp();
     return 0;
 }
@@ -210,6 +239,17 @@ RC QL_Manager::Delete(const char *relName, int nConditions, const Condition *con
     smm.FillAttrInfoInRecords(totAttrInfoArr, 1, relcatTuples);
 
     //执行计划
+    IX_IndexHandler ix_indexHandler;
+    bool bHasIndex = false;
+    int indexedAttrNo;
+    for(i = 0; i < nAttrInfoInOp; i++) {
+        if(totAttrInfoArr[i].indexNo != NO_INDEX) {
+            bHasIndex = true;
+            indexedAttrNo = i;
+            break;
+        }
+    }
+    if(bHasIndex) ixm.OpenIndex(relName, totAttrInfoArr[i].indexNo, ix_indexHandler);
     RM_Record rec;
     RM_FileHandler rm_fileHandler;
     rmm.OpenFile(relName, rm_fileHandler);
@@ -222,14 +262,17 @@ RC QL_Manager::Delete(const char *relName, int nConditions, const Condition *con
     topNode->Open();
 
     while(topNode->GetNext(rec) != QL_EOF) {
-        //TODO
         char *buffer = rec.GetContent();
         rm_fileHandler.DeleteRec(rec.GetRid());
         p.Print(cout, buffer);
+        if(bHasIndex) {
+            ix_indexHandler.DeleteEntry(&buffer[totAttrInfoArr[indexedAttrNo].offset], rec.GetRid());
+        }
     }
     p.PrintFooter(cout);
     topNode->Close();
     rmm.CloseFile(rm_fileHandler);
+    if(bHasIndex) ixm.CloseIndex(ix_indexHandler);
     CleanUp();
     return 0;
 }

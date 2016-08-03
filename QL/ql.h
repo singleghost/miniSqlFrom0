@@ -10,6 +10,7 @@
 #include "../RM/rm.h"
 #include "../IX/ix.h"
 #include "../SM/sm_manager.h"
+#include "../Parse/parser.h"
 
 //RC code
 #define QL_DUP_ATTR_NAME -1

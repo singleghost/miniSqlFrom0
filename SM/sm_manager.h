@@ -8,6 +8,7 @@
 #include "../minisql.h"
 #include "../IX/ix.h"
 #include "printer.h"
+#include "../Parse/parser.h"
 
 #define RELCAT_RECORD_SIZE (MAXNAME + sizeof(int) * 3)
 #define ATTRCAT_RECORD_SIZE (MAXNAME + MAXNAME + sizeof(int) + sizeof(AttrType) + sizeof(int) + sizeof(int))
@@ -21,11 +22,11 @@
 #define SM_ATTR_NOT_FOUND -5
 #define SM_NO_INDEX_ON_ATTR -6
 // Used by SM_Manager::CreateTable
-struct AttrInfo {
-    char     *attrName;           // Attribute name
-    AttrType attrType;            // Type of attribute
-    int      attrLength;          // Length of attribute
-};
+//struct AttrInfo {
+//    char     *attrName;           // Attribute name
+//    AttrType attrType;            // Type of attribute
+//    int      attrLength;          // Length of attribute
+//};
 
 
 struct RelcatTuple {
@@ -45,6 +46,8 @@ struct AttrcatTuple {
 };
 
 class SM_Manager {
+    friend class QL_Manager;
+    friend class QL_RelNode;
 private:
     IX_Manager &ixm;
     RM_Manager &rmm;
@@ -53,8 +56,22 @@ private:
     RM_FileHandler attrcat_fhandler;
 
     RM_FileScan rm_fileScan;
+
+    //转换函数,把从attrcat表中得到的原始元祖转换为AttrInfoInRecord结构体或DataAttrInfo结构体(两个结构体除了名字和字段含义其他完全一样)
     void ConvertFromAttrCatToAttrInfo(AttrInfoInRecord *attrInfo, AttrcatTuple *attrcatTuple);
     void ConvertFromAttrCatToAttrInfo(DataAttrInfo *attrInfo, AttrcatTuple *attrcatTuple);
+
+    //一些提供给QL的接口
+    bool IsAttrInOneOfRelations(const char *attrName, int nRelations, const char * const relations[]);
+    bool IsRelationExist(const char *relName);
+    void FillDataAttrInfoForPrint(DataAttrInfo *dataAttrInfos, int nAttrs, const RelAttr *relAttrs, int nAttrInfos,
+                                  AttrInfoInRecord *attrInfos);
+    AttrType GetAttrType(const char *relName, const char *attrName, int nrelations, const char *const *relations);
+    void FillRelCatTuples(RelcatTuple *relcatTuples, int nRelations, const char * const relations[]);
+    void FillAttrInfoInRecords(AttrInfoInRecord *attrInfos, int nRelations, const RelcatTuple *relCatTuples);
+
+    static void createRelCatTuple(const char *relName, int tupleLength, int attrCount, int indexCount, char *relcat_rec);
+    static void createAttrCatTuple(const char *relName, const char *attrName, int offset, AttrType attrType, int attrLength, int indexNo, char *attrcat_rec);
 public:
     SM_Manager  (IX_Manager &ixm, RM_Manager &rmm) : ixm(ixm), rmm(rmm) {}  // Constructor
     ~SM_Manager () {};                                  // Destructor
@@ -76,17 +93,6 @@ public:
     RC Set         (const char *paramName,              // Set system parameter
                     const char *value);
 
-    //一些提供给QL的接口
-    bool IsAttrInOneOfRelations(const char *attrName, int nRelations, const char * const relations[]);
-    bool IsRelationExist(const char *relName);
-    void FillDataAttrInfoForPrint(DataAttrInfo *dataAttrInfos, int nAttrs, const RelAttr *relAttrs, int nAttrInfos,
-                                  AttrInfoInRecord *attrInfos);
-    AttrType GetAttrType(const char *relName, const char *attrName, int nrelations, const char *const *relations);
-    void FillRelCatTuples(RelcatTuple *relcatTuples, int nRelations, const char * const relations[]);
-    void FillAttrInfoInRecords(AttrInfoInRecord *attrInfos, int nRelations, const RelcatTuple *relCatTuples);
-
-    static void createRelCatTuple(const char *relName, int tupleLength, int attrCount, int indexCount, char *relcat_rec);
-    static void createAttrCatTuple(const char *relName, const char *attrName, int offset, AttrType attrType, int attrLength, int indexNo, char *attrcat_rec);
 
 };
 

@@ -222,6 +222,10 @@ RC LexAnalyser::nextToken(Token &tok) {
                 tok.kind = RPAREN;
                 tok.value = NULL;
                 return 0;
+            case '.':
+                tok.kind == DOT;
+                tok.value = NULL;
+                return 0;
         }
     }
     return INVALID_INPUT;

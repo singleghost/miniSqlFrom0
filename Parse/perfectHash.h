@@ -34,11 +34,11 @@
 #endif
 
 
-#define TOTAL_KEYWORDS 21
+#define TOTAL_KEYWORDS 23
 #define MIN_WORD_LENGTH 2
 #define MAX_WORD_LENGTH 7
 #define MIN_HASH_VALUE 2
-#define MAX_HASH_VALUE 31
+#define MAX_HASH_VALUE 34
 /* maximum key range = 30, duplicates = 0 */
 
 #define NOT_KEYWORD -1

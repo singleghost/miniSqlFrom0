@@ -48,6 +48,7 @@ S -> print ID;
 
 S -> set ID EQ STRING_LIT;
 
+S -> exit;
 
 ATTR_DEF_LIST -> ATTR_DEF, ATTR_DEF_LIST
                 | ATTR_DEF

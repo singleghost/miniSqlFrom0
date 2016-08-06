@@ -6,6 +6,7 @@
 
 RC SyntaxAnalyser::GetNextToken(Token &tok) {
     if(bTokenBuffered) {
+        bTokenBuffered = false;
         tok = aheadToken;
         return 0;
     }
@@ -22,39 +23,42 @@ void SyntaxAnalyser::BufferToken(const Token &tok) {
 
 RC SyntaxAnalyser::parseCommand() {
     lexAnalyser.getCommand(stdin);
-    Parse_S();
+    if(Parse_S()) return SYNTAX_ERR;
+    return 0;
 }
+
 RC SyntaxAnalyser::Parse_S() {
     Token tok;
     RC rc;
-    if( (rc = GetNextToken(tok))) return LEX_ERR;
+    if( (GetNextToken(tok))) return LEX_ERR;
     switch (tok.kind) {
         case SELECT :
             BufferToken(tok);
             if( Parse_select_clause()) return SYNTAX_ERR;
-            if( (rc = GetNextToken(tok))) return LEX_ERR;
+            if( (GetNextToken(tok))) return LEX_ERR;
             if(tok.kind == WHERE) {
                 BufferToken(tok);
                 if( Parse_where_clause()) return SYNTAX_ERR;
-                if( rc = GetNextToken(tok)) return LEX_ERR;
+                if( GetNextToken(tok)) return LEX_ERR;
                 if(tok.kind == SEMICOLON) return 0;
                 else return SYNTAX_ERR;
             } else if(tok.kind == SEMICOLON) {
                 return 0;
             }
+            return SYNTAX_ERR;
         case INSERT:
-            if( (rc = GetNextToken(tok))) return LEX_ERR;
+            if( (GetNextToken(tok))) return LEX_ERR;
             if(tok.kind == INTO) {
-                if( (rc = GetNextToken(tok))) return LEX_ERR;
+                if( (GetNextToken(tok))) return LEX_ERR;
                 if(tok.kind == IDENTIFIER) {
-                    if( (rc = GetNextToken(tok))) return LEX_ERR;
+                    if( (GetNextToken(tok))) return LEX_ERR;
                     if(tok.kind == VALUES) {
-                        if( (rc = GetNextToken(tok))) return LEX_ERR;
+                        if( (GetNextToken(tok))) return LEX_ERR;
                         if(tok.kind == LPAREN) {
                             if(Parse_literalList()) return SYNTAX_ERR;
-                            if( (rc = GetNextToken(tok))) return LEX_ERR;
+                            if( (GetNextToken(tok))) return LEX_ERR;
                             if(tok.kind == RPAREN) {
-                                if( (rc = GetNextToken(tok))) return LEX_ERR;
+                                if( (GetNextToken(tok))) return LEX_ERR;
                                 if(tok.kind == SEMICOLON) {
                                     return 0;
                                 }
@@ -65,16 +69,17 @@ RC SyntaxAnalyser::Parse_S() {
             }
             return SYNTAX_ERR;
         case UPDATE:
-            if( (rc = GetNextToken(tok))) return LEX_ERR;
+            if( (GetNextToken(tok))) return LEX_ERR;
             if(tok.kind == IDENTIFIER) {
-                if( (rc = GetNextToken(tok))) return LEX_ERR;
-                if(tok.kind == VALUES) {
-                    if( (rc = GetNextToken(tok))) return LEX_ERR;
-                    if(tok.kind == LPAREN) {
-                        if(Parse_literalList()) return SYNTAX_ERR;
-                        if( (rc = GetNextToken(tok))) return LEX_ERR;
-                        if(tok.kind == RPAREN) {
-                            if( (rc = GetNextToken(tok))) return LEX_ERR;
+                if( (GetNextToken(tok))) return LEX_ERR;
+                if(tok.kind == SET) {
+                    if( (GetNextToken(tok))) return LEX_ERR;
+                    if(tok.kind == IDENTIFIER) {
+                        if( (GetNextToken(tok))) return LEX_ERR;
+                        if(tok.kind == EQ) {
+                            if(Parse_VALUE()) return SYNTAX_ERR;
+                            if(Parse_where_clause()) return SYNTAX_ERR;
+                            if( (GetNextToken(tok))) return LEX_ERR;
                             if(tok.kind == SEMICOLON) return 0;
                         }
                     }
@@ -83,15 +88,15 @@ RC SyntaxAnalyser::Parse_S() {
             return SYNTAX_ERR;
 
         case DELETE:
-            if( (rc = GetNextToken(tok))) return LEX_ERR;
+            if( (GetNextToken(tok))) return LEX_ERR;
             if(tok.kind == FROM) {
-                if( (rc = GetNextToken(tok))) return LEX_ERR;
+                if( (GetNextToken(tok))) return LEX_ERR;
                 if(tok.kind == IDENTIFIER) {
-                    if( (rc = GetNextToken(tok))) return LEX_ERR;
+                    if( (GetNextToken(tok))) return LEX_ERR;
                     if(tok.kind == WHERE) {
                         BufferToken(tok);
                         if(Parse_where_clause()) return SYNTAX_ERR;
-                        if( (rc = GetNextToken(tok))) return LEX_ERR;
+                        if( (GetNextToken(tok))) return LEX_ERR;
                         if(tok.kind == SEMICOLON) return 0;
                     } else if(tok.kind == SEMICOLON) return 0;
 
@@ -100,11 +105,11 @@ RC SyntaxAnalyser::Parse_S() {
             return SYNTAX_ERR;
 
         case CREATE:
-            if( (rc = GetNextToken(tok))) return LEX_ERR;
+            if( (GetNextToken(tok))) return LEX_ERR;
             if(tok.kind == TABLE) {
-                if( (rc = GetNextToken(tok))) return LEX_ERR;
+                if( (GetNextToken(tok))) return LEX_ERR;
                 if(tok.kind == IDENTIFIER) {
-                    if( (rc = GetNextToken(tok))) return LEX_ERR;
+                    if( (GetNextToken(tok))) return LEX_ERR;
                     if(tok.kind == LPAREN) {
                         if(Parse_attrDefList()) return SYNTAX_ERR;
                         if(GetNextToken(tok)) return LEX_ERR;
@@ -131,8 +136,8 @@ RC SyntaxAnalyser::Parse_S() {
                     }
                 }
                 return SYNTAX_ERR;
-            } else return SYNTAX_ERR;
-
+            }
+            return SYNTAX_ERR;
         case DROP:
             if(GetNextToken(tok)) return LEX_ERR;
             if(tok.kind == TABLE) {
@@ -155,10 +160,12 @@ RC SyntaxAnalyser::Parse_S() {
                     }
                 }
                 return SYNTAX_ERR;
-            } else return SYNTAX_ERR;
+            }
+            return SYNTAX_ERR;
         case LOAD:
             if(GetNextToken(tok)) return LEX_ERR;
             if(tok.kind == IDENTIFIER) {
+                if(GetNextToken(tok)) return LEX_ERR;
                 if(tok.kind == LPAREN) {
                     if(GetNextToken(tok)) return LEX_ERR;
                     if(tok.kind == STRINGLIT) {
@@ -198,6 +205,12 @@ RC SyntaxAnalyser::Parse_S() {
                 }
             }
             return SYNTAX_ERR;
+        case EXIT:
+            if(GetNextToken(tok)) return LEX_ERR;
+            if(tok.kind == SEMICOLON) {
+                exit(0);
+            }
+            return SYNTAX_ERR;
         default:
             return SYNTAX_ERR;
 
@@ -208,14 +221,13 @@ RC SyntaxAnalyser::Parse_S() {
 RC SyntaxAnalyser::Parse_select_clause() {
     RC rc;
     Token tok;
-    if((rc = GetNextToken(tok))) return LEX_ERR;
+    if((GetNextToken(tok))) return LEX_ERR;
     if(tok.kind == SELECT) {
         if(Parse_attrList()) return SYNTAX_ERR;
         if(GetNextToken(tok)) return LEX_ERR;
         if(tok.kind == FROM) {
             if(Parse_tableList()) return SYNTAX_ERR;
-            if(GetNextToken(tok)) return LEX_ERR;
-            if(tok.kind == SEMICOLON) return 0;
+            return 0;
         }
     }
     return SYNTAX_ERR;
@@ -227,6 +239,7 @@ RC SyntaxAnalyser::Parse_where_clause() {
     if(GetNextToken(tok)) return LEX_ERR;
     if(tok.kind == WHERE) {
         if(Parse_condList()) return SYNTAX_ERR;
+        return 0;
     }
     return SYNTAX_ERR;
 }
@@ -266,9 +279,9 @@ RC SyntaxAnalyser::Parse_attrType() {
     RC rc;
     Token tok;
     if(GetNextToken(tok)) return LEX_ERR;
-    if(tok.kind == INT) {
+    if(tok.kind == INT_KEY) {
         return 0;
-    } else if(tok.kind == FLOAT) {
+    } else if(tok.kind == FLOAT_KEY) {
         return 0;
     } else if(tok.kind == CHAR) {
         if(GetNextToken(tok)) return LEX_ERR;
@@ -358,6 +371,7 @@ RC SyntaxAnalyser::Parse_COND() {
     if(Parse_ATTR()) return SYNTAX_ERR;
     if(Parse_comp()) return SYNTAX_ERR;
     if(Parse_VALUE()) return SYNTAX_ERR;
+    return 0;
 }
 
 RC SyntaxAnalyser::Parse_VALUE() {
@@ -371,7 +385,8 @@ RC SyntaxAnalyser::Parse_VALUE() {
             return 0;
         default:
             BufferToken(tok);
-            Parse_ATTR();
+            if(Parse_ATTR()) return SYNTAX_ERR;
+            return 0;
     }
 }
 
@@ -404,6 +419,7 @@ RC SyntaxAnalyser::Parse_literalList() {
     Token tok;
     if(Parse_literal()) return SYNTAX_ERR;
     while(true) {
+        if(GetNextToken(tok)) return LEX_ERR;
         if(tok.kind == COMMA) {
             if(Parse_literal()) return SYNTAX_ERR;
         } else {

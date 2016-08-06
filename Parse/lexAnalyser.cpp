@@ -43,18 +43,18 @@ void LexAnalyser::getCommand(FILE *fin) {
 //读取的token中关键词和identifier不区分大小写,只有字面量区分大小写
 RC LexAnalyser::nextToken(Token &tok) {
     if (tok.value) {
-        tok.value = NULL;
         delete[] tok.value;
+        tok.value = NULL;
     }  //释放空间
     char c;
     int beginPos;
     int keyword;
     int length;
 
-    beginPos = pos;
     do {
         c = line[pos++];
     } while (c == ' ' || c == '\t' || c == '\n');    //忽略所有的空白字符
+    beginPos = pos - 1;
 
     if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_') {
         c = line[pos++];
@@ -223,7 +223,7 @@ RC LexAnalyser::nextToken(Token &tok) {
                 tok.value = NULL;
                 return 0;
             case '.':
-                tok.kind == DOT;
+                tok.kind = DOT;
                 tok.value = NULL;
                 return 0;
         }

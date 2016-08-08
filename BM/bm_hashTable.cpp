@@ -57,6 +57,7 @@ RC BM_HashTable::Delete(int fd, int pageNum) {
     int index = Hash(fd, pageNum);
     TableEntry *entry = HashTable[index];
     TableEntry *temp;
+    if(entry == nullptr) return 0;
     if(entry->fd == fd && entry->pageNum == pageNum) {
         HashTable[index] = entry->next;
         free(entry);

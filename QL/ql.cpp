@@ -400,7 +400,7 @@ void QL_Manager::GetAttrInfoByRelAttr(AttrInfoInRecord &attrInfo, const RelAttr 
 
 }
 
-char *error_msg[] = { "duplicate attribute name", "duplicate table name", "attribute not exist", "table not exist", "incompatible compare operators" ,"QL EOF"};
-void PrintError(RC rc) {
+const char *error_msg[] = { "duplicate attribute name", "duplicate table name", "attribute not exist", "table not exist", "incompatible compare operators" ,"QL EOF"};
+void QL_PrintError(RC rc) {
     printf("Error: %s\n", error_msg[-1 - rc]);
 }

@@ -266,9 +266,9 @@ RC SM_Manager::Print(const char *relName) {
     p.PrintHeader(cout);
 
 // Open the file and set up the file scan
-    if (relName == "relcat") {
+    if (!strcmp(relName, "relcat")) {
         rfh = relcat_fhandler;
-    } else if (relName == "attrcat") {
+    } else if (!strcmp(relName, "attrcat")) {
         rfh = attrcat_fhandler;
     } else {
         rmm.OpenFile(relName, rfh);
@@ -286,7 +286,7 @@ RC SM_Manager::Print(const char *relName) {
 
 // Close the scan, file, delete the attributes pointer, etc.
     rfs.CloseScan();
-    if (relName != "relcat" && relName != "attrcat") {
+    if (strcmp(relName, "relcat") && strcmp(relName, "attrcat")) {  //如果既不是relcat也不是attrcat
         rmm.CloseFile(rfh);
     }
     delete[] attributes;
@@ -340,7 +340,7 @@ RC SM_Manager::Load(const char *relName, const char *fileName) {
     char *attrEnd;
     char tuple[tupleLength];
     while (!feof(fp)) {
-        memset(line, 0, sizeof(line));
+        memset(line, 0, tupleLength * 5);
         fgets(line, tupleLength * 5, fp);   //读取文件的一行
         if (strcmp(line, "") == 0) break;    //判断是否读取了空行
         char *attrBegin = line;
@@ -369,6 +369,7 @@ RC SM_Manager::Load(const char *relName, const char *fileName) {
 
 RC SM_Manager::Set(const char *paramName, const char *value) {
     //TODO
+    return 0;
 }
 
 void SM_Manager::createRelCatTuple(const char *relName, int tupleLength, int attrCount, int indexCount,
@@ -433,10 +434,10 @@ SM_Manager::GetAttrType(const char *relName, const char *attrName, int nrelation
         }
     }
     rm_fileScan.CloseScan();
-
+    assert(false);
 }
 
-char *error_msgs[20] = {"Table not exist", "duplicate table", "duplicate index",
+const char *error_msgs[20] = {"Table not exist", "duplicate table", "duplicate index",
                         "data file not exist in `load` command",
                         "attribute not found", "no index built on specified attribute"};
 

@@ -14,14 +14,19 @@ using namespace std;
 //
 //    }
 //}
+PF_Manager pfm;
+RM_Manager rmm(pfm);
+IX_Manager ixm(pfm);
+SM_Manager smm(ixm, rmm);
+QL_Manager qlm(smm, ixm, rmm);
 int main()
 {
 //    LexAnalyser lexer;
-//    RC rc;
+    RC rc;
 //    Token tok;
 //    while (true) {
 //        printf("\nsql> ");
-//        lexer.getCommand(stdin);
+//        lexer.getCmd(stdin);
 //        while ((rc = lexer.nextToken(tok)) != INVALID_INPUT) {
 //            if (tok.kind == SEMICOLON) break;
 //        }
@@ -29,9 +34,14 @@ int main()
 //            printf("Error: wrong input\n");
 //        }
 //    }
-    SyntaxAnalyser syntaxAnalyser;
+    smm.OpenDb("ZJU");
+    SyntaxAnalyser syntaxAnalyser(qlm, smm);
     while(true) {
         printf("\nsql> ");
-        if(syntaxAnalyser.parseCommand()) printf("Error: wront input\n");
+        if((rc = syntaxAnalyser.parseCommand())) {
+//            QL_PrintError(rc);
+            printf("Error: wront input\n");
+        }
     }
+//    smm.CloseDb();
 }

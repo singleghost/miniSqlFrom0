@@ -10,7 +10,7 @@
 #include "bm.h"
 
 struct TableEntry {
-    TableEntry *next;   //指向前一条记录的指针
+    TableEntry *next;   //指向下一条记录的指针
     int fd;
     int pageNum;
     int slot;           //slot 为Page Description Table的下标

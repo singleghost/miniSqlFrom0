@@ -227,13 +227,19 @@ void BM_BufferMgr::PrintPageDescTable() {
 
 void BM_BufferMgr::FlushPages(int fd) {
     int slot = firstUsed;
+    int temp;
     while (slot != INVALID_SLOT) {
+
         if (PageDescTable[slot].fd == fd) {
             ForcePage(fd, PageDescTable[slot].pageNum);
             hashTable->Delete(fd, PageDescTable[slot].pageNum);
+            temp = PageDescTable[slot].next;
             UnlinkFromUsed(slot);
             FreeLinkHead(slot);
+            slot = temp;
+
+        } else {
+            slot = PageDescTable[slot].next;
         }
-        slot = PageDescTable[slot].next;
     }
 }

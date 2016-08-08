@@ -111,7 +111,7 @@ private:
     char line[MAXLINELEN];
     int pos;
 public:
-    void getCommand(FILE *fin);
+    void getCmd(FILE *fin);
 
     RC nextToken(Token &tok);
 

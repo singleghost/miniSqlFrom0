@@ -27,7 +27,7 @@ unsigned char downcaseTbl[256] =
                 255
         };
 
-void LexAnalyser::getCommand(FILE *fin) {
+void LexAnalyser::getCmd(FILE *fin) {
     int i = 0;
     char c;
     while ((c = getc(fin)) != ';') {
@@ -151,6 +151,7 @@ RC LexAnalyser::nextToken(Token &tok) {
                 tok.len = pos - beginPos - 2;   //两个引号不需要算进去
                 tok.value = new char[tok.len + 1];
                 memcpy(tok.value, &line[beginPos + 1], tok.len);
+                tok.value[tok.len] = '\0';  //以0字节结尾
                 return 0;
             case '\'':
                 c = line[pos++];
@@ -162,6 +163,7 @@ RC LexAnalyser::nextToken(Token &tok) {
                 tok.len = pos - beginPos - 2;   //两个引号不需要算进去
                 tok.value = new char[tok.len + 1];
                 memcpy(tok.value, &line[beginPos + 1], tok.len);
+                tok.value[tok.len] = '\0';  //以0字节结尾
                 return 0;
             case '>':
                 c = line[pos++];

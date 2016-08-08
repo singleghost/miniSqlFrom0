@@ -187,5 +187,5 @@ public:
                const Condition conditions[]);  // conditions in Where clause
 };
 
-void PrintError(RC rc);
+void QL_PrintError(RC rc);
 #endif //MINISQLFROM0_QL_MANAGER_H

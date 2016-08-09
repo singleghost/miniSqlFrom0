@@ -2,6 +2,7 @@
 // Created by 谢俊东 on 16/7/30.
 //
 
+#include <cassert>
 #include "ql.h"
 
 QL_ProjNode::QL_ProjNode(QL_Manager &qlm, QL_Node &prevNode, int nAttrs, const RelAttr projAttrs[]) :
@@ -11,11 +12,27 @@ QL_ProjNode::QL_ProjNode(QL_Manager &qlm, QL_Node &prevNode, int nAttrs, const R
     prevNode.GetAttrList(prevAttrList);
     int nPrevAttrs = prevNode.GetAttrNum();
 
-    nAttrInfos = nAttrs;
+    int i, j;
     tupleLength = 0;
+
+//    if(nAttrs == 1) {
+//        if(projAttrs[0].relName == nullptr && !strcmp(projAttrs[0].attrName, "*")) {
+//            nAttrInfos = qlm.ntotAttrInfo;
+//            this->attrInfos = new AttrInfoInRecord[nAttrInfos];
+//            memcpy(this->attrInfos, qlm.attrInfosArr, sizeof(AttrInfoInRecord) * qlm.ntotAttrInfo);
+//            this->offsetInPrev = new int[nAttrs];
+//            for(j = 0; j < nPrevAttrs; j++) {
+//                offsetInPrev[j] = prevAttrList[j].offset;
+//                tupleLength += prevAttrList->attrLength;
+//            }
+//            buffer = new char[tupleLength];
+//            return ;
+//        }
+//
+//    }
+    nAttrInfos = nAttrs;
     this->attrInfos = new AttrInfoInRecord[nAttrs];
     this->offsetInPrev = new int[nAttrs];
-    int i, j;
     for (i = 0; i < nAttrs; i++) {
         for (j = 0; j < nPrevAttrs; j++) {
             if (projAttrs[i].relName) {

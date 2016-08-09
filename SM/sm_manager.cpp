@@ -479,9 +479,32 @@ void SM_Manager::FillAttrInfoInRecords(AttrInfoInRecord *attrInfos, int nRelatio
 
 }
 
+void SM_Manager::FillRelAttrs(int nRelations, const char *const *relations, vector<RelAttr> &relAttrs) {
+    //TODO
+    int i;
+    RelcatTuple *relcatTuples = new RelcatTuple[nRelations];
+
+    FillRelCatTuples(relcatTuples, nRelations, &relations[0]);
+    int nTotalAttrs = 0;
+    for(i = 0; i < nRelations; i++) nTotalAttrs += relcatTuples[i].attrCount;
+    RM_Record rec;
+    for(i = 0; i < nRelations; i++) {
+        rm_fileScan.OpenScan(attrcat_fhandler, STRING, MAXNAME, 0, EQ_OP, (void *) relcatTuples[i].relName);
+        while (rm_fileScan.GetNextRec(rec) != RM_EOF) {
+            AttrcatTuple *attrcatTuple = (AttrcatTuple *) rec.GetContent();
+            relAttrs.push_back(RelAttr(attrcatTuple->relName, attrcatTuple->attrName));
+        }
+        rm_fileScan.CloseScan();
+    }
+}
+
 void SM_Manager::FillDataAttrInfoForPrint(DataAttrInfo *dataAttrInfos, int nAttrs, const RelAttr *relAttrs, int nAttrInfos,
                                           AttrInfoInRecord *attrInfos) {
     assert(sizeof(DataAttrInfo) == sizeof(AttrInfoInRecord));
+    if(nAttrs == 1 && relAttrs[0].relName == nullptr && !strcmp(relAttrs[0].attrName, "*")) {
+        memcpy(dataAttrInfos, attrInfos, sizeof(DataAttrInfo) * nAttrInfos);
+        return;
+    }
     int i, j;
     int base = 0;
     for (i = 0; i < nAttrs; i++) {

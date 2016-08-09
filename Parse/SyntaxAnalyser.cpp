@@ -50,6 +50,11 @@ RC SyntaxAnalyser::Parse_S() {
                 tableNames.push_back(tables[i].c_str());
             }
             if ((GetNextToken(tok))) return LEX_ERR;
+            if(attrs.size() == 1 && attrs[0].relName == nullptr && !strcmp(attrs[0].attrName, "*")) {
+                //如果是通配符
+                attrs.clear();
+                smm.FillRelAttrs(tableNames.size(), &tableNames[0], attrs);
+            }
             if (tok.kind == WHERE) {
                 BufferToken(tok);
                 if (Parse_where_clause(conds)) return SYNTAX_ERR;
@@ -77,6 +82,7 @@ RC SyntaxAnalyser::Parse_S() {
                             if (tok.kind == RPAREN) {
                                 if ((GetNextToken(tok))) return LEX_ERR;
                                 if (tok.kind == SEMICOLON) {
+
                                     return qlm.Insert(relName.c_str(), values.size(), &values[0]);
                                 }
                             }
@@ -275,6 +281,46 @@ RC SyntaxAnalyser::Parse_S() {
         default:
             return SYNTAX_ERR;
 
+        case NOP0:break;
+        case NOP1:break;
+        case ON:break;
+        case PRIMARY:break;
+        case INT_KEY:break;
+        case INTO:break;
+        case INDEX:break;
+        case NOP2:break;
+        case AND:break;
+        case FROM:break;
+        case FLOAT_KEY:break;
+        case VALUES:break;
+        case NOP3:break;
+        case NOP4:break;
+        case WHERE:break;
+        case NOP5:break;
+        case NOP6:break;
+        case CHAR:break;
+        case TABLE:break;
+        case NOP8:break;
+        case NOP9:break;
+        case NOP10:break;
+        case NOP11:break;
+        case NOP12:break;
+        case INTLIT:break;
+        case STRINGLIT:break;
+        case FLOATLIT:break;
+        case EQ:break;
+        case NE:break;
+        case GT:break;
+        case GE:break;
+        case LT:break;
+        case LE:break;
+        case IDENTIFIER:break;
+        case COMMA:break;
+        case LPAREN:break;
+        case RPAREN:break;
+        case SEMICOLON:break;
+        case DOT:break;
+        case EOC:break;
     }
 
 }

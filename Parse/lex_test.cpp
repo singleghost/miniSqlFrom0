@@ -39,8 +39,7 @@ int main()
     while(true) {
         printf("\nsql> ");
         if((rc = syntaxAnalyser.parseCommand())) {
-//            QL_PrintError(rc);
-            printf("Error: wront input\n");
+            PrintError(rc);
         }
     }
 //    smm.CloseDb();

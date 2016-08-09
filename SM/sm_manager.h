@@ -48,6 +48,7 @@ struct AttrcatTuple {
 class SM_Manager {
     friend class QL_Manager;
     friend class QL_RelNode;
+    friend class SyntaxAnalyser;
 private:
     IX_Manager &ixm;
     RM_Manager &rmm;
@@ -69,7 +70,7 @@ private:
     AttrType GetAttrType(const char *relName, const char *attrName, int nrelations, const char *const *relations);
     void FillRelCatTuples(RelcatTuple *relcatTuples, int nRelations, const char * const relations[]);
     void FillAttrInfoInRecords(AttrInfoInRecord *attrInfos, int nRelations, const RelcatTuple *relCatTuples);
-
+    void FillRelAttrs(int nRelations, const char *const *relations, vector<RelAttr> &relAttrs);
     static void createRelCatTuple(const char *relName, int tupleLength, int attrCount, int indexCount, char *relcat_rec);
     static void createAttrCatTuple(const char *relName, const char *attrName, int offset, AttrType attrType, int attrLength, int indexNo, char *attrcat_rec);
 public:

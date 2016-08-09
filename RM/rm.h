@@ -160,7 +160,7 @@ private:
 
     RID cur_rid;    //当前Scan到的record的RID
     bool bScanIsOpen;
-    bool (*comparator) (void * , void *, AttrType, int);
+    bool (*comparator) (const void * , const void *, AttrType, int);
 
 public:
     RM_FileScan() {}
@@ -178,16 +178,16 @@ public:
 
 //一些全局函数
 namespace myComp {
-    bool less_than(void *value1, void *value2, AttrType attrType, int attrLength);
+    bool less_than(const void *value1, const void *value2, AttrType attrType, int attrLength);
 
-    bool less_than_or_equal(void *value1, void *value2, AttrType attrType, int attrLength);
+    bool less_than_or_equal(const void *value1, const void *value2, AttrType attrType, int attrLength);
 
-    bool greater_than(void *value1, void *value2, AttrType attrType, int attrLength);
+    bool greater_than(const void *value1, const void *value2, AttrType attrType, int attrLength);
 
-    bool greater_than_or_equal(void *value1, void *value2, AttrType attrType, int attrLength);
+    bool greater_than_or_equal(const void *value1, const void *value2, AttrType attrType, int attrLength);
 
-    bool equal_To(void *value1, void *value2, AttrType attrType, int attrLength);
+    bool equal_To(const void *value1, const void *value2, AttrType attrType, int attrLength);
 
-    bool not_equal_to(void *value1, void *value2, AttrType attrType, int attrLength);
+    bool not_equal_to(const void *value1, const void *value2, AttrType attrType, int attrLength);
 }
 #endif //MINISQLFROM0_RM_MANAGER_H

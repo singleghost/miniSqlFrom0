@@ -7,6 +7,7 @@
 #define PARSER_H
 
 #include <iostream>
+#include <cassert>
 #include "../minisql.h"
 #include "../PF/pf_filemgr.h"
 
@@ -81,19 +82,31 @@ public:
     Value(const Value &value) {
         type = value.type;
         if(value.data) {
-            data = new char[strlen(value.data) + 1];
-            strcpy(data, value.data);
+            if(value.type == STRING) {
+                data = new char[strlen(value.data) + 1];
+                strcpy(data, value.data);
+            } else {
+                assert(sizeof(int) == sizeof(float));
+                data = new char[sizeof(int)];
+                memcpy(data, value.data, sizeof(int));
+            }
         } else data = nullptr;
     }
 
     Value &operator=(const Value &value) {
         if (this == &value) return *this;
+        type = value.type;
         if (data) delete[] data;
         if(value.data) {
-            data = new char[strlen(value.data) + 1];
-            strcpy(data, value.data);
+            if(value.type == STRING) {
+                data = new char[strlen(value.data) + 1];
+                strcpy(data, value.data);
+            } else {
+                assert(sizeof(int) == sizeof(float));
+                data = new char[sizeof(int)];
+                memcpy(data, value.data, sizeof(int));
+            }
         } else data = nullptr;
-        type = value.type;
         return *this;
     }
 

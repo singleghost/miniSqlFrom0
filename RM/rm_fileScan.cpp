@@ -5,7 +5,7 @@
 #include "rm.h"
 
 
-bool myComp::less_than(void *value1, void *value2, AttrType attrType, int attrLength) {
+bool myComp::less_than(const void *value1, const void *value2, AttrType attrType, int attrLength) {
     switch (attrType) {
         case INT:
             return *(int *) value1 < *(int *) value2;
@@ -16,7 +16,7 @@ bool myComp::less_than(void *value1, void *value2, AttrType attrType, int attrLe
     }
 }
 
-bool myComp::less_than_or_equal(void *value1, void *value2, AttrType attrType, int attrLength) {
+bool myComp::less_than_or_equal(const void *value1, const void *value2, AttrType attrType, int attrLength) {
     switch (attrType) {
         case INT:
             return *(int *) value1 <= *(int *) value2;
@@ -27,7 +27,7 @@ bool myComp::less_than_or_equal(void *value1, void *value2, AttrType attrType, i
     }
 }
 
-bool myComp::greater_than(void *value1, void *value2, AttrType attrType, int attrLength) {
+bool myComp::greater_than(const void *value1, const void *value2, AttrType attrType, int attrLength) {
     switch (attrType) {
         case INT:
             return *(int *) value1 > *(int *) value2;
@@ -38,7 +38,7 @@ bool myComp::greater_than(void *value1, void *value2, AttrType attrType, int att
     }
 }
 
-bool myComp::greater_than_or_equal(void *value1, void *value2, AttrType attrType, int attrLength) {
+bool myComp::greater_than_or_equal(const void *value1, const void *value2, AttrType attrType, int attrLength) {
     switch (attrType) {
         case INT:
             return *(int *) value1 >= *(int *) value2;
@@ -49,7 +49,7 @@ bool myComp::greater_than_or_equal(void *value1, void *value2, AttrType attrType
     }
 }
 
-bool myComp::equal_To(void *value1, void *value2, AttrType attrType, int attrLength) {
+bool myComp::equal_To(const void *value1, const void *value2, AttrType attrType, int attrLength) {
     switch (attrType) {
         case INT:
             return *(int *) value1 == *(int *) value2;
@@ -60,7 +60,7 @@ bool myComp::equal_To(void *value1, void *value2, AttrType attrType, int attrLen
     }
 }
 
-bool myComp::not_equal_to(void *value1, void *value2, AttrType attrType, int attrLength) {
+bool myComp::not_equal_to(const void *value1, const void *value2, AttrType attrType, int attrLength) {
     switch (attrType) {
         case INT:
             return *(int *) value1 != *(int *) value2;

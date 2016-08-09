@@ -65,7 +65,7 @@ QL_SelNode::QL_SelNode(QL_Manager &qlm, QL_Node &prevNode, Condition cond) : QL_
                 }
 
             } else {
-                if (!strcmp(cond.rhsAttr.attrName, qlm.totAttrInfoArr[i].attrName)) {
+                if (!strcmp(cond.rhsAttr.attrName, qlm.attrInfosArr[i].attrName)) {
                     rightAttr = prevAttrInfos[i];
                     break;
                 }

@@ -89,7 +89,7 @@ RC LexAnalyser::nextToken(Token &tok) {
                 pos--;
                 tok.kind = FLOATLIT;
                 tok.len = pos - beginPos;
-                tok.value = new char[tok.len + 1];
+                tok.value = (char *) calloc(tok.len + 1, 1);
                 memcpy(tok.value, &line[beginPos], tok.len);
                 return 0;
             }
@@ -99,7 +99,7 @@ RC LexAnalyser::nextToken(Token &tok) {
                 pos--;
                 tok.kind = INTLIT;
                 tok.len = pos - beginPos;
-                tok.value = new char[tok.len + 1];
+                tok.value = (char *) calloc(tok.len + 1, 1);
                 memcpy(tok.value, &line[beginPos], tok.len);
                 return 0;
             }
@@ -124,7 +124,7 @@ RC LexAnalyser::nextToken(Token &tok) {
                             pos--;
                             tok.kind = FLOATLIT;
                             tok.len = pos - beginPos;
-                            tok.value = new char[tok.len + 1];
+                            tok.value = (char *) calloc(tok.len + 1, 1);
                             memcpy(tok.value, &line[beginPos], tok.len);
                             return 0;
                         }
@@ -134,7 +134,7 @@ RC LexAnalyser::nextToken(Token &tok) {
                             pos--;
                             tok.kind = INTLIT;
                             tok.len = pos - beginPos;
-                            tok.value = new char[tok.len + 1];
+                            tok.value = (char *) calloc(tok.len + 1, 1);
                             memcpy(tok.value, &line[beginPos], tok.len);
                             return 0;
                         }
@@ -149,7 +149,7 @@ RC LexAnalyser::nextToken(Token &tok) {
                 }
                 tok.kind = STRINGLIT;
                 tok.len = pos - beginPos - 2;   //两个引号不需要算进去
-                tok.value = new char[tok.len + 1];
+                tok.value = (char *) calloc(tok.len + 1, 1);
                 memcpy(tok.value, &line[beginPos + 1], tok.len);
                 tok.value[tok.len] = '\0';  //以0字节结尾
                 return 0;
@@ -161,7 +161,7 @@ RC LexAnalyser::nextToken(Token &tok) {
                 }
                 tok.kind = STRINGLIT;
                 tok.len = pos - beginPos - 2;   //两个引号不需要算进去
-                tok.value = new char[tok.len + 1];
+                tok.value = (char *) calloc(tok.len + 1, 1);
                 memcpy(tok.value, &line[beginPos + 1], tok.len);
                 tok.value[tok.len] = '\0';  //以0字节结尾
                 return 0;
@@ -227,6 +227,12 @@ RC LexAnalyser::nextToken(Token &tok) {
             case '.':
                 tok.kind = DOT;
                 tok.value = NULL;
+                return 0;
+            case '*':
+                tok.kind = IDENTIFIER;
+                tok.len = 1;
+                tok.value = (char *) calloc(tok.len + 1, 1);
+                tok.value[0] = '*';
                 return 0;
         }
     }

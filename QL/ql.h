@@ -13,12 +13,12 @@
 #include "../Parse/parser.h"
 
 //RC code
-#define QL_DUP_ATTR_NAME -1
-#define QL_DUP_TABLE_NAME -2
-#define QL_ATTR_NOT_EXIST -3
-#define QL_TABLE_NOT_EXIST -4
-#define QL_INCOMPATIBLE_COMP_OP -5
-#define QL_EOF -6
+#define QL_DUP_ATTR_NAME (-400-1)
+#define QL_DUP_TABLE_NAME (-400-2)
+#define QL_ATTR_NOT_EXIST (-400-3)
+#define QL_TABLE_NOT_EXIST (-400-4)
+#define QL_INCOMPATIBLE_COMP_OP (-400-5)
+#define QL_EOF (-400-6)
 
 using std::ostream;
 
@@ -83,7 +83,7 @@ public:
 private:
     QL_Node &prevNode;  //前一个节点
     Condition cond;   //选择条件
-    bool (*compfunc)(void *value1, void *value2, AttrType attrType, int attrLength);
+    bool (*compfunc)(const void *value1, const void *value2, AttrType attrType, int attrLength);
 
     AttrInfoInRecord leftAttr;
     AttrInfoInRecord rightAttr;
@@ -148,8 +148,8 @@ private:
 
     RelcatTuple *relcatTuples;  //每次操作所有的relation catalog
     int nRelations;
-    AttrInfoInRecord *totAttrInfoArr;    //每次操作要用到的所有的attrInfo
-    int nAttrInfoInOp;                  //每次操作用的的所有attrInfo的数量
+    AttrInfoInRecord *attrInfosArr;    //每次操作要用到的所有的attrInfo
+    int ntotAttrInfo;                  //每次操作用的的所有attrInfo的数量
 
     bool HasDupAttrName(int nAttrs, const RelAttr Attrs[]);
     bool HasDupTableName(int nRelations, const char * const relations[]);

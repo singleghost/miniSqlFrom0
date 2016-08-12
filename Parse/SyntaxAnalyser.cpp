@@ -22,8 +22,9 @@ void SyntaxAnalyser::BufferToken(const Token &tok) {
 }
 
 RC SyntaxAnalyser::parseCommand() {
+    RC rc;
     lexer.getCmd(stdin);
-    if (Parse_S()) return SYNTAX_ERR;
+    if (rc = Parse_S()) return rc;
     return 0;
 }
 
@@ -281,46 +282,6 @@ RC SyntaxAnalyser::Parse_S() {
         default:
             return SYNTAX_ERR;
 
-        case NOP0:break;
-        case NOP1:break;
-        case ON:break;
-        case PRIMARY:break;
-        case INT_KEY:break;
-        case INTO:break;
-        case INDEX:break;
-        case NOP2:break;
-        case AND:break;
-        case FROM:break;
-        case FLOAT_KEY:break;
-        case VALUES:break;
-        case NOP3:break;
-        case NOP4:break;
-        case WHERE:break;
-        case NOP5:break;
-        case NOP6:break;
-        case CHAR:break;
-        case TABLE:break;
-        case NOP8:break;
-        case NOP9:break;
-        case NOP10:break;
-        case NOP11:break;
-        case NOP12:break;
-        case INTLIT:break;
-        case STRINGLIT:break;
-        case FLOATLIT:break;
-        case EQ:break;
-        case NE:break;
-        case GT:break;
-        case GE:break;
-        case LT:break;
-        case LE:break;
-        case IDENTIFIER:break;
-        case COMMA:break;
-        case LPAREN:break;
-        case RPAREN:break;
-        case SEMICOLON:break;
-        case DOT:break;
-        case EOC:break;
     }
 
 }
@@ -608,3 +569,8 @@ RC SyntaxAnalyser::Parse_literalList(vector<Value> &values) {
     return SYNTAX_ERR;
 }
 
+const char *ps_error_msg[] = { "Parser: unrecognizable token", "Parser: syntax check error"};
+void PS_PrintError(RC rc) {
+
+    printf("Error: %s\n", ps_error_msg[START_PARSER_ERR - 1 - rc]);
+}

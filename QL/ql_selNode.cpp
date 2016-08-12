@@ -5,7 +5,8 @@
 #include "ql.h"
 #include "../RM/rm.h"
 
-QL_SelNode::QL_SelNode(QL_Manager &qlm, QL_Node &prevNode, Condition cond) : QL_Node(qlm), prevNode(prevNode), cond(cond) {
+QL_SelNode::QL_SelNode(QL_Manager &qlm, QL_Node &prevNode, Condition cond) : QL_Node(qlm), prevNode(prevNode),
+                                                                             cond(cond) {
     //确定用于比较的函数
     switch (cond.op) {
         case EQ_OP:
@@ -84,22 +85,31 @@ RC QL_SelNode::GetNext(RM_Record &rec) {
         if (prevNode.GetNext(rec) == QL_EOF) return QL_EOF;
         char *buffer = rec.GetContent();
         if (cond.bRhsIsAttr) {   //右边是属性
-            //TODO
-            if (compfunc(&buffer[leftAttr.offset], &buffer[rightAttr.offset], leftAttr.attrType,
-                               max(leftAttr.attrLength, rightAttr.attrLength))) {
+            if (leftAttr.attrType == STRING) {
+                int maxerLen = max(leftAttr.attrLength, rightAttr.attrLength);
+                char rhsBuffer[maxerLen + 1];
+                memset(rhsBuffer, 0, sizeof(rhsBuffer));
+                memcpy(rhsBuffer, &buffer[rightAttr.offset], rightAttr.attrLength);
+                char lhsBuffer[maxerLen + 1];
+                memset(lhsBuffer, 0, sizeof(lhsBuffer));
+                memcpy(lhsBuffer, &buffer[leftAttr.offset], leftAttr.attrLength);
+                if (compfunc(&buffer[leftAttr.offset], &buffer[rightAttr.offset], leftAttr.attrType, maxerLen)) {
+                    return 0;
+                }
+            } else if (compfunc(&buffer[leftAttr.offset], &buffer[rightAttr.offset], leftAttr.attrType,
+                                max(leftAttr.attrLength, rightAttr.attrLength))) {
                 return 0;
             }
         } else {
             //右边是值
             //如果是字符串比较,要先进行0字节填充
-            //TODO bug exist
-            if(leftAttr.attrType == STRING) {
-                if(strlen((char *)cond.rhsValue.data) > leftAttr.attrLength) continue;
+            if (leftAttr.attrType == STRING) {
+                if (strlen(cond.rhsValue.data) > leftAttr.attrLength) continue;
                 char rhsBuffer[leftAttr.attrLength + 1];
-                memset(rhsBuffer, 0, leftAttr.attrLength);
+                memset(rhsBuffer, 0, sizeof(rhsBuffer));
                 memcpy(rhsBuffer, cond.rhsValue.data, strlen(cond.rhsValue.data));
                 char lhsBuffer[leftAttr.attrLength + 1];
-                memset(lhsBuffer, 0, leftAttr.attrLength);
+                memset(lhsBuffer, 0, sizeof(lhsBuffer));
                 memcpy(lhsBuffer, &buffer[leftAttr.offset], leftAttr.attrLength);
                 if (compfunc(lhsBuffer, rhsBuffer, leftAttr.attrType, leftAttr.attrLength)) {
                     return 0;
@@ -121,5 +131,5 @@ void QL_SelNode::Reset() {
 }
 
 QL_SelNode::~QL_SelNode() {
-    delete [] attrInfos;
+    delete[] attrInfos;
 }

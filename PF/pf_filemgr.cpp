@@ -199,5 +199,5 @@ PageHandler& PageHandler::operator=(const PageHandler &phandler) {
 
 const char *pf_error_msg[] = {"PF: page not in use", "PF: no page in file"};
 void PF_PrintError(RC rc) {
-    printf("Error: %s\n", pf_error_msg[START_PF_ERR - rc]);
+    printf("Error: %s\n", pf_error_msg[START_PF_ERR - 1 - rc]);
 }

@@ -29,6 +29,8 @@ typedef int RC; //函数返回的错误码，数字类型，　大于０为ｗ�
 #define END_SM_ERR    (-400)
 #define START_QL_ERR  (-401)
 #define END_QL_ERR    (-500)
+#define START_PARSER_ERR (-501)
+#define END_PARSER_ERR (-600)
 
 #define START_PF_WARN  1
 #define END_PF_WARN    100
@@ -40,6 +42,8 @@ typedef int RC; //函数返回的错误码，数字类型，　大于０为ｗ�
 #define END_SM_WARN    400
 #define START_QL_WARN  401
 #define END_QL_WARN    500
+#define START_PARSER_WARN 501
+#define END_PARSER_WARN 600
 
 enum AttrType{
     INT,

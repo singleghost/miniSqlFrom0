@@ -433,5 +433,5 @@ const char *ql_error_msg[] = {"duplicate attribute name", "duplicate table name"
                            "incompatible compare operators", "QL EOF"};
 
 void QL_PrintError(RC rc) {
-    printf("Error: %s\n", ql_error_msg[START_QL_ERR - rc]);
+    printf("Error: %s\n", ql_error_msg[START_QL_ERR - 1 - rc]);
 }

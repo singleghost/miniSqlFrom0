@@ -10,8 +10,8 @@
 #include "../QL/ql.h"
 #include <vector>
 
-#define LEX_ERR -1
-#define SYNTAX_ERR -2
+#define LEX_ERR (START_PARSER_ERR - 1)
+#define SYNTAX_ERR (START_PARSER_ERR - 2)
 
 struct Literal {
     int i;
@@ -51,5 +51,5 @@ public:
     RC parseCommand();
 };
 
-
+void PS_PrintError(RC rc);
 #endif //MINISQLFROM0_SYNTAXANALYSER_H

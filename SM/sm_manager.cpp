@@ -348,8 +348,12 @@ RC SM_Manager::Load(const char *relName, const char *fileName) {
         for (i = 0; i < attrCount; i++) {    //循环读取每一个属性
             attrEnd = strchr(attrBegin, ',');
             if (attributes[i].attrType == STRING) {
-                strncpy((char *) (tuple + attributes[i].offset), attrBegin,
-                        min(attributes[i].attrLength, attrEnd - attrBegin));
+                if(attrEnd != NULL) {
+                    strncpy((char *) (tuple + attributes[i].offset), attrBegin,
+                            min(attributes[i].attrLength, attrEnd - attrBegin));
+                } else {
+                    strncpy((char *)(tuple + attributes[i].offset), attrBegin, strlen(attrBegin) - 1);
+                }
             }
             else if (attributes[i].attrType == INT) {
                 sscanf(attrBegin, "%d", (int *) (tuple + attributes[i].offset));
@@ -472,7 +476,6 @@ void SM_Manager::FillAttrInfoInRecords(AttrInfoInRecord *attrInfos, int nRelatio
 }
 
 void SM_Manager::FillRelAttrs(int nRelations, const char *const *relations, vector<RelAttr> &relAttrs) {
-    //TODO
     int i;
     RelcatTuple *relcatTuples = new RelcatTuple[nRelations];
 
@@ -553,6 +556,6 @@ const char *sm_error_msg[] = {"SM: table not exist", "SM: table name exists in d
                               "SM: attribute not found", "SM: no index created on specified attribute"};
 
 void SM_PrintError(RC rc) {
-    printf("Error: %s\n", sm_error_msg[START_SM_ERR - rc]);
+    printf("Error: %s\n", sm_error_msg[START_SM_ERR - 1 - rc]);
 }
 

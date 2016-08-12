@@ -54,7 +54,7 @@ RC RM_FileHandler::UpdateRec(const RM_Record &rec) {
     RID rid = rec.GetRid();
     int page = rid.getPageNum();
     RM_PageHandler rm_pageHandler;
-    if( GetThisPage(page, rm_pageHandler) == PAGE_NOT_IN_USE) return PAGE_NOT_IN_USE;
+    if( GetThisPage(page, rm_pageHandler) == PF_PAGE_NOT_IN_USE) return PF_PAGE_NOT_IN_USE;
     rm_pageHandler.UpdateRecord(pNewRec, rid);
 
     MarkDirty(page);
@@ -66,7 +66,7 @@ RC RM_FileHandler::DeleteRec(const RID &rid) {
     int page = rid.getPageNum();
     int slot = rid.getSlot();
     RM_PageHandler rm_pageHandler;
-    if( GetThisPage(page, rm_pageHandler) == PAGE_NOT_IN_USE) return PAGE_NOT_IN_USE;
+    if( GetThisPage(page, rm_pageHandler) == PF_PAGE_NOT_IN_USE) return PF_PAGE_NOT_IN_USE;
     rm_pageHandler.DeleteRecord(slot);
 //    printf("%d\n", rm_pageHandler.rm_pageHeader.NumOfRecords);    调试用
     if(rm_pageHandler.rm_pageHeader.NumOfRecords == 0) {

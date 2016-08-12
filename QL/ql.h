@@ -13,12 +13,12 @@
 #include "../Parse/parser.h"
 
 //RC code
-#define QL_DUP_ATTR_NAME (-400-1)
-#define QL_DUP_TABLE_NAME (-400-2)
-#define QL_ATTR_NOT_EXIST (-400-3)
-#define QL_TABLE_NOT_EXIST (-400-4)
-#define QL_INCOMPATIBLE_COMP_OP (-400-5)
-#define QL_EOF (-400-6)
+#define QL_DUP_ATTR_NAME (START_QL_ERR-1)
+#define QL_DUP_TABLE_NAME (START_QL_ERR-2)
+#define QL_ATTR_NOT_EXIST (START_QL_ERR-3)
+#define QL_TABLE_NOT_EXIST (START_QL_ERR-4)
+#define QL_INCOMPATIBLE_COMP_OP (START_QL_ERR-5)
+#define QL_EOF (START_QL_ERR-6)
 
 using std::ostream;
 

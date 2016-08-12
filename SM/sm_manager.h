@@ -15,19 +15,12 @@
 #define NO_INDEX -1 //attrcat表中属性上没有建索引时indexNo的值
 
 //RC code
-#define SM_TABLE_NOT_EXIST -1
-#define SM_DUPLICATE_TABLE -2
-#define SM_DUPLICATE_INDEX -3
-#define SM_DATA_FILE_NOT_EXIST -4
-#define SM_ATTR_NOT_FOUND -5
-#define SM_NO_INDEX_ON_ATTR -6
-// Used by SM_Manager::CreateTable
-//struct AttrInfo {
-//    char     *attrName;           // Attribute name
-//    AttrType attrType;            // Type of attribute
-//    int      attrLength;          // Length of attribute
-//};
-
+#define SM_TABLE_NOT_EXIST START_SM_ERR-1
+#define SM_DUPLICATE_TABLE START_SM_ERR-2
+#define SM_DUPLICATE_INDEX START_SM_ERR-3
+#define SM_DATA_FILE_NOT_EXIST START_SM_ERR-4
+#define SM_ATTR_NOT_FOUND START_SM_ERR-5
+#define SM_NO_INDEX_ON_ATTR START_SM_ERR-6
 
 struct RelcatTuple {
     char relName[MAXNAME];

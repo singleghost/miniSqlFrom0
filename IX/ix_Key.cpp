@@ -72,3 +72,4 @@ bool Key::operator!=(const Key &key1) const
         case STRING: return strncmp(this->ptr, key1.ptr, attrLength) != 0;
     }
 }
+

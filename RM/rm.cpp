@@ -77,3 +77,8 @@ RM_Record& RM_Record::operator=(const RM_Record &rec) {
         return *this;
     }
 }
+
+const char *rm_error_msg[] = { "RM: record not in use", "RM: EOF", "RM: page record eof"};
+void RM_PrintError(RC rc) {
+    printf("Error: %s\n", rm_error_msg[START_RM_ERR - rc]);
+}

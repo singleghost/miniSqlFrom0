@@ -24,7 +24,7 @@ RC IX_IndexScan::GetNextEntry(RID &rid) {
     IX_PageHandler ix_pageHandler;
     if (curPage == -1 && curLoc == -1) {
         curPage = indexHandler.Search(indexHandler.ix_fh.rootNode, this->key);
-        if (indexHandler.GetThisPage(curPage, ix_pageHandler) == PAGE_NOT_IN_USE) return PAGE_NOT_IN_USE;
+        if (indexHandler.GetThisPage(curPage, ix_pageHandler) == PF_PAGE_NOT_IN_USE) return PF_PAGE_NOT_IN_USE;
         if (ix_pageHandler.Get_Loc_From_Key(this->compOp, this->key, curLoc) == IX_KEY_NOT_FOUND)
             return IX_NO_MORE_ENTRY;
         else {
@@ -40,7 +40,7 @@ RC IX_IndexScan::GetNextEntry(RID &rid) {
         }
     } else {
         if (compOp == EQ_OP) return IX_NO_MORE_ENTRY;
-        if (indexHandler.GetThisPage(curPage, ix_pageHandler) == PAGE_NOT_IN_USE) return PAGE_NOT_IN_USE;
+        if (indexHandler.GetThisPage(curPage, ix_pageHandler) == PF_PAGE_NOT_IN_USE) return PF_PAGE_NOT_IN_USE;
     }
 
     switch (compOp) {
@@ -51,7 +51,7 @@ RC IX_IndexScan::GetNextEntry(RID &rid) {
                 curPage = ix_pageHandler.ix_pageHeader.nextNode;
                 if (curPage == -1) return IX_NO_MORE_ENTRY;
                 curLoc = 0;
-                if (indexHandler.GetThisPage(curPage, ix_pageHandler) == PAGE_NOT_IN_USE) return PAGE_NOT_IN_USE;
+                if (indexHandler.GetThisPage(curPage, ix_pageHandler) == PF_PAGE_NOT_IN_USE) return PF_PAGE_NOT_IN_USE;
                 assert(curLoc < ix_pageHandler.ix_pageHeader.nCurPtrs);
                 rid = ix_pageHandler.GetLeafRID(curLoc);
             }
@@ -63,7 +63,7 @@ RC IX_IndexScan::GetNextEntry(RID &rid) {
             else {
                 curPage = ix_pageHandler.ix_pageHeader.prevNode;
                 if (curPage == -1) return IX_NO_MORE_ENTRY;
-                if (indexHandler.GetThisPage(curPage, ix_pageHandler) == PAGE_NOT_IN_USE) return PAGE_NOT_IN_USE;
+                if (indexHandler.GetThisPage(curPage, ix_pageHandler) == PF_PAGE_NOT_IN_USE) return PF_PAGE_NOT_IN_USE;
                 curLoc = ix_pageHandler.ix_pageHeader.nCurPtrs - 1;
                 assert(curLoc >= 0);
                 rid = ix_pageHandler.GetLeafRID(curLoc);

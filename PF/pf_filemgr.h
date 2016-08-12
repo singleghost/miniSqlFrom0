@@ -18,8 +18,9 @@ using std::string;
 #define ALL_PAGES -1            //用于默认参数
 
 //RC code
-#define PAGE_NOT_IN_USE -1      //返回码
-#define PF_NO_PAGE_IN_FILE -2
+#define PF_PAGE_NOT_IN_USE (START_PF_ERR-1)      //返回码
+#define PF_NO_PAGE_IN_FILE (START_PF_ERR-2)
+
 struct pageHeader {
     int nextFree;   //下一个free page
     int pageNum;        //页号
@@ -106,4 +107,6 @@ public:
     BM_BufferMgr *GetBufferManager() { return bufferMgr; }
 };
 
+
+void PF_PrintError(RC rc);
 #endif //MINISQLFROM0_PF_FILEMGR_H

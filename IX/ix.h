@@ -189,4 +189,6 @@ public:
     RC GetNextEntry(RID &rid);  //获取下一个Entry的rid, 没有下一个时返回IX_NO_MORE_ENTRY
     RC CloseScan(); //关闭扫描
 };
+
+void IX_PrintError(RC rc);
 #endif //MINISQLFROM0_IX_H

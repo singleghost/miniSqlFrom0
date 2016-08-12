@@ -86,7 +86,7 @@ RC FileHandler::GetThisPage(int pageNum, PageHandler &phandler) const throw(no_f
     assert(pageNum >= 0 && pageNum < fh.numOfPages);
     char *page_addr;
     if(bufferMgr->GetPage(fd, pageNum, page_addr) == BM_NO_FREE_BUF_WARNING) throw no_free_buffer_exp();
-    if (((pageHeader *)page_addr)->nextFree != PAGEINUSE ) return PAGE_NOT_IN_USE;
+    if (((pageHeader *)page_addr)->nextFree != PAGEINUSE ) return PF_PAGE_NOT_IN_USE;
     memcpy(&phandler.phdr, page_addr, sizeof(pageHeader));
     phandler.data = page_addr + sizeof(pageHeader);
 
@@ -96,7 +96,7 @@ RC FileHandler::GetThisPage(int pageNum, PageHandler &phandler) const throw(no_f
 RC FileHandler::GetNextPage(int pageNum, PageHandler &pageHandle) const {
     int current;
     for (current = pageNum + 1; current < fh.numOfPages; current++) {
-        if(GetThisPage(current, pageHandle) == PAGE_NOT_IN_USE) continue;
+        if(GetThisPage(current, pageHandle) == PF_PAGE_NOT_IN_USE) continue;
         else return 0;
     }
     throw page_not_found_exception();
@@ -104,7 +104,7 @@ RC FileHandler::GetNextPage(int pageNum, PageHandler &pageHandle) const {
 
 RC FileHandler::GetLastPage(PageHandler &pageHandle) const {
     for(int current = fh.numOfPages - 1; current >= 0; current--) {
-        if(GetThisPage(current, pageHandle) == PAGE_NOT_IN_USE) continue;
+        if(GetThisPage(current, pageHandle) == PF_PAGE_NOT_IN_USE) continue;
         else return 0;
     }
     throw page_not_found_exception();
@@ -112,7 +112,7 @@ RC FileHandler::GetLastPage(PageHandler &pageHandle) const {
 
 RC FileHandler::GetPrevPage(int current, PageHandler &pageHandle) const {
     for(int pageIndex = current - 1; pageIndex >= 0; pageIndex--) {
-        if(GetThisPage(pageIndex, pageHandle) == PAGE_NOT_IN_USE) continue;
+        if(GetThisPage(pageIndex, pageHandle) == PF_PAGE_NOT_IN_USE) continue;
         else return 0;
     }
     throw page_not_found_exception();
@@ -197,3 +197,7 @@ PageHandler& PageHandler::operator=(const PageHandler &phandler) {
     }
 }
 
+const char *pf_error_msg[] = {"PF: page not in use", "PF: no page in file"};
+void PF_PrintError(RC rc) {
+    printf("Error: %s\n", pf_error_msg[START_PF_ERR - rc]);
+}

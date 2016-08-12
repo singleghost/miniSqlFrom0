@@ -176,6 +176,7 @@ public:
     RC CloseScan();                 //关闭scan
 };
 
+void RM_PrintError(RC rc);
 //一些全局函数
 namespace myComp {
     bool less_than(const void *value1, const void *value2, AttrType attrType, int attrLength);

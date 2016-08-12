@@ -132,7 +132,7 @@ RC QL_Manager::Insert(const char *relName, int nValues, const Value *values) {
     attrInfosArr = new AttrInfoInRecord[relcatTuples->attrCount];
     smm.FillAttrInfoInRecords(attrInfosArr, 1, relcatTuples);
 
-    char *buffer = new char[relcatTuples->tupleLength];
+    char *buffer = (char *) calloc(relcatTuples->tupleLength, 1);
     int offset = 0;
     for (int i = 0; i < nValues; i++) {
         memcpy(buffer + offset, values[i].data, attrInfosArr[i].attrLength);
@@ -241,13 +241,23 @@ RC QL_Manager::Update(const char *relName, const RelAttr &updAttr, const int bIs
 }
 
 RC QL_Manager::Delete(const char *relName, int nConditions, const Condition *conditions) {
+
     if (!CheckTablesValid(1, &relName)) return QL_TABLE_NOT_EXIST;
     if (!CheckCondAttrValid(1, &relName, nConditions, conditions)) return QL_ATTR_NOT_EXIST;
+
+    relcatTuples = new RelcatTuple;
+    nRelations = 1;
+    smm.FillRelCatTuples(relcatTuples, 1, &relName);
+    ntotAttrInfo = relcatTuples->attrCount;
+    attrInfosArr = new AttrInfoInRecord[relcatTuples->attrCount];
+    smm.FillAttrInfoInRecords(attrInfosArr, 1, relcatTuples);
+
     if (!CheckCondCompTypeConsistent(nConditions, conditions)) return QL_INCOMPATIBLE_COMP_OP;
 
 
     /*----------------------构建查询树-----------------------------------*/
     QL_Node *topNode;
+    //bug
     QL_RelNode *relNode = new QL_RelNode(*this, relName);
     topNode = relNode;
     int i, j;
@@ -256,11 +266,6 @@ RC QL_Manager::Delete(const char *relName, int nConditions, const Condition *con
         selNodes[i] = new QL_SelNode(*this, *topNode, conditions[i]);
         topNode = selNodes[i];
     }
-    relcatTuples = new RelcatTuple;
-    smm.FillRelCatTuples(relcatTuples, 1, &relName);
-    ntotAttrInfo = relcatTuples->attrCount;
-    attrInfosArr = new AttrInfoInRecord[relcatTuples->attrCount];
-    smm.FillAttrInfoInRecords(attrInfosArr, 1, relcatTuples);
 
     //执行计划
     IX_IndexHandler ix_indexHandler;
@@ -424,9 +429,9 @@ void QL_Manager::GetAttrInfoByRelAttr(AttrInfoInRecord &attrInfo, const RelAttr 
 
 }
 
-const char *error_msg[] = {"duplicate attribute name", "duplicate table name", "attribute not exist", "table not exist",
+const char *ql_error_msg[] = {"duplicate attribute name", "duplicate table name", "attribute not exist", "table not exist",
                            "incompatible compare operators", "QL EOF"};
 
 void QL_PrintError(RC rc) {
-    printf("Error: %s\n", error_msg[START_QL_ERR - rc]);
+    printf("Error: %s\n", ql_error_msg[START_QL_ERR - rc]);
 }

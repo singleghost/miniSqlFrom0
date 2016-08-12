@@ -437,14 +437,6 @@ SM_Manager::GetAttrType(const char *relName, const char *attrName, int nrelation
     assert(false);
 }
 
-const char *error_msgs[20] = {"Table not exist", "duplicate table", "duplicate index",
-                        "data file not exist in `load` command",
-                        "attribute not found", "no index built on specified attribute"};
-
-void SM_PrintError(RC rc) {
-    printf("Error: ");
-    printf("%s\n", error_msgs[-1 - rc]);
-}
 
 void SM_Manager::FillRelCatTuples(RelcatTuple *relcatTuples, int nRelations, const char *const *relations) {
     int i;
@@ -486,9 +478,9 @@ void SM_Manager::FillRelAttrs(int nRelations, const char *const *relations, vect
 
     FillRelCatTuples(relcatTuples, nRelations, &relations[0]);
     int nTotalAttrs = 0;
-    for(i = 0; i < nRelations; i++) nTotalAttrs += relcatTuples[i].attrCount;
+    for (i = 0; i < nRelations; i++) nTotalAttrs += relcatTuples[i].attrCount;
     RM_Record rec;
-    for(i = 0; i < nRelations; i++) {
+    for (i = 0; i < nRelations; i++) {
         rm_fileScan.OpenScan(attrcat_fhandler, STRING, MAXNAME, 0, EQ_OP, (void *) relcatTuples[i].relName);
         while (rm_fileScan.GetNextRec(rec) != RM_EOF) {
             AttrcatTuple *attrcatTuple = (AttrcatTuple *) rec.GetContent();
@@ -498,19 +490,21 @@ void SM_Manager::FillRelAttrs(int nRelations, const char *const *relations, vect
     }
 }
 
-void SM_Manager::FillDataAttrInfoForPrint(DataAttrInfo *dataAttrInfos, int nAttrs, const RelAttr *relAttrs, int nAttrInfos,
-                                          AttrInfoInRecord *attrInfos) {
+void
+SM_Manager::FillDataAttrInfoForPrint(DataAttrInfo *dataAttrInfos, int nAttrs, const RelAttr *relAttrs, int nAttrInfos,
+                                     AttrInfoInRecord *attrInfos) {
     assert(sizeof(DataAttrInfo) == sizeof(AttrInfoInRecord));
-    if(nAttrs == 1 && relAttrs[0].relName == nullptr && !strcmp(relAttrs[0].attrName, "*")) {
+    if (nAttrs == 1 && relAttrs[0].relName == nullptr && !strcmp(relAttrs[0].attrName, "*")) {
         memcpy(dataAttrInfos, attrInfos, sizeof(DataAttrInfo) * nAttrInfos);
         return;
     }
     int i, j;
     int base = 0;
     for (i = 0; i < nAttrs; i++) {
-        for(j = 0; j < nAttrInfos; j++) {
+        for (j = 0; j < nAttrInfos; j++) {
             if (relAttrs[i].relName != NULL) {
-                if (strcmp(relAttrs[i].relName, attrInfos[j].relName) == 0 && !strcmp(relAttrs[i].attrName, attrInfos[j].attrName)) {
+                if (strcmp(relAttrs[i].relName, attrInfos[j].relName) == 0 &&
+                    !strcmp(relAttrs[i].attrName, attrInfos[j].attrName)) {
                     memcpy(&dataAttrInfos[i], &attrInfos[j], sizeof(DataAttrInfo));
                     dataAttrInfos[i].offset = base;
                     base += dataAttrInfos[i].attrLength;
@@ -518,7 +512,7 @@ void SM_Manager::FillDataAttrInfoForPrint(DataAttrInfo *dataAttrInfos, int nAttr
                 }
             } else {
                 //如果relName省略
-                if(!strcmp(relAttrs[i].attrName, attrInfos[j].attrName)) {
+                if (!strcmp(relAttrs[i].attrName, attrInfos[j].attrName)) {
                     memcpy(&dataAttrInfos[i], &attrInfos[j], sizeof(DataAttrInfo));
                     dataAttrInfos[i].offset = base;
                     base += dataAttrInfos[i].attrLength;
@@ -552,3 +546,13 @@ void SM_Manager::ConvertFromAttrCatToAttrInfo(DataAttrInfo *attrInfo, AttrcatTup
     attrInfo->indexNo = attrcatTuple->indexNo;
 
 }
+
+const char *sm_error_msg[] = {"SM: table not exist", "SM: table name exists in database",
+                              "SM: index has been created on such attribute",
+                              "SM: data file not exist in `load` command",
+                              "SM: attribute not found", "SM: no index created on specified attribute"};
+
+void SM_PrintError(RC rc) {
+    printf("Error: %s\n", sm_error_msg[START_SM_ERR - rc]);
+}
+

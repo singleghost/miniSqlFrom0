@@ -23,9 +23,9 @@ RC IX_IndexHandler::InsertEntry(void *pData, const RID &rid) {
 
 int IX_IndexHandler::Insert_into_Leaf(int target_page, const Key &key, const RID &rid) {
     IX_PageHandler ix_PH;
-    if (GetThisPage(target_page, ix_PH) == PAGE_NOT_IN_USE) {
+    if (GetThisPage(target_page, ix_PH) == PF_PAGE_NOT_IN_USE) {
         printf("page not in use\n");
-        return PAGE_NOT_IN_USE;
+        return PF_PAGE_NOT_IN_USE;
     }
     if (ix_PH.GetnCurPtr() < ix_fh.nMaxPtrLeafPage) {
         //如果当前叶节点未满
@@ -82,7 +82,7 @@ int IX_IndexHandler::Insert_into_Leaf(int target_page, const Key &key, const RID
 
 int IX_IndexHandler::Insert_into_Interior(int target_page, const Key &key, PagePtr pPage) {
     IX_PageHandler ix_pageHdlr;
-    if (GetThisPage(target_page, ix_pageHdlr) == PAGE_NOT_IN_USE) return PAGE_NOT_IN_USE;
+    if (GetThisPage(target_page, ix_pageHdlr) == PF_PAGE_NOT_IN_USE) return PF_PAGE_NOT_IN_USE;
     if (ix_pageHdlr.GetnCurPtr() < ix_fh.nMaxPtrInteriorPage) {
         //如果当前节点未满
         ix_pageHdlr.InsertInteriorEntry(key, pPage);
@@ -140,14 +140,14 @@ int IX_IndexHandler::Insert_into_Interior(int target_page, const Key &key, PageP
 RC IX_IndexHandler::GetThisPage(int pageNum, IX_PageHandler &ix_pageHandler) {
 
     PageHandler pf_pageHandler;
-    if (pf_fileHandler.GetThisPage(pageNum, pf_pageHandler) == PAGE_NOT_IN_USE) return PAGE_NOT_IN_USE;
+    if (pf_fileHandler.GetThisPage(pageNum, pf_pageHandler) == PF_PAGE_NOT_IN_USE) return PF_PAGE_NOT_IN_USE;
     ix_pageHandler = IX_PageHandler(pf_pageHandler, ix_fh.attrType, ix_fh.attrLength);
     return 0;
 }
 
 int IX_IndexHandler::Search(int page, const Key &key){
     IX_PageHandler ix_pageHandler;
-    if (GetThisPage(page, ix_pageHandler) == PAGE_NOT_IN_USE) {
+    if (GetThisPage(page, ix_pageHandler) == PF_PAGE_NOT_IN_USE) {
         printf("IX_PAGE_NOT_IN_USE\n");
         exit(234);
 //        return IX_PAGE_NOT_IN_USE;
@@ -196,7 +196,7 @@ RC IX_IndexHandler::DeleteEntry(void *pData, const RID &rid) {
     Key key((char *)pData, ix_fh.attrType, ix_fh.attrLength);
     int page = Search(ix_fh.rootNode, key);
     IX_PageHandler ix_PH;
-    if (GetThisPage(page, ix_PH) == PAGE_NOT_IN_USE) return PAGE_NOT_IN_USE;
+    if (GetThisPage(page, ix_PH) == PF_PAGE_NOT_IN_USE) return PF_PAGE_NOT_IN_USE;
     ix_PH.DeleteLeafEntry(key);
     if(ix_PH.GetnCurPtr() == 0) {
         //如果当前页面为空页面
@@ -207,14 +207,14 @@ RC IX_IndexHandler::DeleteEntry(void *pData, const RID &rid) {
         IX_PageHandler ix_neighbourPH;
         assert(ix_PH.GetPageType() == LeafPage);
         if(ix_PH.GetNextNode() != IX_NEXT_LIST_END) {
-            if (GetThisPage(ix_PH.GetNextNode(), ix_neighbourPH) == PAGE_NOT_IN_USE)
-                return PAGE_NOT_IN_USE;
+            if (GetThisPage(ix_PH.GetNextNode(), ix_neighbourPH) == PF_PAGE_NOT_IN_USE)
+                return PF_PAGE_NOT_IN_USE;
             ix_neighbourPH.setPrevNode(ix_PH.GetPrevNode());
             MarkDirty(ix_neighbourPH.GetPageNum());
             UnpinPage(ix_neighbourPH.GetPageNum());
         }
         if(ix_PH.GetPrevNode() != IX_PREV_LIST_END) {
-            if(GetThisPage(ix_PH.GetPrevNode(), ix_neighbourPH) == PAGE_NOT_IN_USE) return PAGE_NOT_IN_USE;
+            if(GetThisPage(ix_PH.GetPrevNode(), ix_neighbourPH) == PF_PAGE_NOT_IN_USE) return PF_PAGE_NOT_IN_USE;
             ix_neighbourPH.setNextNode(ix_PH.GetNextNode());
             MarkDirty(ix_neighbourPH.GetPageNum());
             UnpinPage(ix_neighbourPH.GetPageNum());
@@ -231,7 +231,7 @@ RC IX_IndexHandler::DeleteEntry(void *pData, const RID &rid) {
 RC IX_IndexHandler::Delete_from_Interior(int target_page, PagePtr child_page) {
     IX_PageHandler ix_PH;
     int i;
-    if (GetThisPage(target_page, ix_PH) == PAGE_NOT_IN_USE) return PAGE_NOT_IN_USE;
+    if (GetThisPage(target_page, ix_PH) == PF_PAGE_NOT_IN_USE) return PF_PAGE_NOT_IN_USE;
     if(ix_PH.GetnCurPtr() == 1) {   //如果只剩下一个指针
         if(ix_PH.GetInteriorPtr(0) == child_page) {
             ix_PH.setCurPtr(0);
@@ -308,9 +308,9 @@ RC IX_IndexHandler::UpdateParentPtrOfChildNode(IX_PageHandler &ix_pageHandler) {
 
     IX_PageHandler child_PH;
     for(int i = 0; i < ix_pageHandler.GetnCurPtr(); i++) {
-        if(GetThisPage(ix_pageHandler.GetInteriorPtr(i), child_PH) == PAGE_NOT_IN_USE) {
+        if(GetThisPage(ix_pageHandler.GetInteriorPtr(i), child_PH) == PF_PAGE_NOT_IN_USE) {
             printf("UpdateParentPtrOfChildNode GetThisPage failure\n");
-            return PAGE_NOT_IN_USE;
+            return PF_PAGE_NOT_IN_USE;
         }
         child_PH.setParentNode(ix_pageHandler.GetPageNum());
         UnpinPage(child_PH.GetPageNum());

@@ -68,3 +68,7 @@ RC IX_Manager::DestroyIndex(string filename, int indexNo) {
     //将indexNo转换为string作为文件的扩展名
     return pfm.DestroyFile(filename + "." + ext);
 }
+const char *ix_error_msg[] = { "IX: Page not in use", "IX: no such entry", "IX: no more entry", "IX: key not found"};
+void IX_PrintError(RC rc) {
+    printf("Error: %s\n", ix_error_msg[START_IX_ERR - rc]);
+}

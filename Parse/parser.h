@@ -45,6 +45,7 @@ struct RelAttr {
         } else {
             this->relName = NULL;
         }
+
         this->attrName = new char[strlen(attrName) + 1];
         strcpy(this->attrName, attrName);
     }
@@ -62,8 +63,10 @@ struct RelAttr {
             this->relName = new char[strlen(relAttr.relName) + 1];
             strcpy(this->relName, relAttr.relName);
         } else this->relName = NULL;
-        this->attrName = new char[strlen(relAttr.attrName) + 1];
-        strcpy(this->attrName, relAttr.attrName);
+        if(relAttr.attrName) {
+            this->attrName = new char[strlen(relAttr.attrName) + 1];
+            strcpy(this->attrName, relAttr.attrName);
+        } else this->attrName = NULL;
         return *this;
     }
 

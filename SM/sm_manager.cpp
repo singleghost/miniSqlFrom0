@@ -133,7 +133,18 @@ RC SM_Manager::CreateIndex(const char *relName, const char *attrName) {
     //创建index文件
     ixm.CreateIndex(relName, attrTuple->indexNo, attrTuple->attrType, attrTuple->attrLength);
     //如果表中已经有数据,将数据插入index中
-    //TODO
+    IX_IndexHandler indexHandler;
+    ixm.OpenIndex(relName, curIndexCnt, indexHandler);
+    RM_FileHandler rm_fileHandler;
+    rmm.OpenFile(relName, rm_fileHandler);
+    RM_FileScan fileScan;
+    fileScan.OpenScan(rm_fileHandler, INT, 4, 0, NO_OP, NULL);
+    while(fileScan.GetNextRec(rec) != RM_EOF) {
+        indexHandler.InsertEntry(rec.GetContent(), rec.GetRid());
+    }
+    fileScan.CloseScan();
+    rmm.CloseFile(rm_fileHandler);
+    ixm.CloseIndex(indexHandler);
     return 0;
 }
 
@@ -319,6 +330,8 @@ RC SM_Manager::Load(const char *relName, const char *fileName) {
     rfs.OpenScan(attrcat_fhandler, STRING, MAXNAME, 0, EQ_OP, (void *) relName);
     int i = 0;
     int tupleLength = 0;
+    bool hasIndex = false;
+    int indexAttr;
     while (rfs.GetNextRec(rec) != RM_EOF) {
         attrcatTuple = (AttrcatTuple *) rec.GetContent();
         strncpy(attributes[i].attrName, attrcatTuple->attrName, MAXNAME);
@@ -329,6 +342,10 @@ RC SM_Manager::Load(const char *relName, const char *fileName) {
         attributes[i].indexNo = attrcatTuple->indexNo;
         attributes[i].isPrimary = attrcatTuple->bIsPrimary;
         tupleLength += attributes[i].attrLength;
+        if(attributes[i].indexNo != NO_INDEX) {
+            hasIndex = true;
+            indexAttr = i;
+        }
         i++;
     }
     rfs.CloseScan();
@@ -344,6 +361,10 @@ RC SM_Manager::Load(const char *relName, const char *fileName) {
     char *attrEnd;
     char tuple[tupleLength];
     bool isDup;
+    IX_IndexHandler ix_indexHandler;
+    if(hasIndex) {
+        ixm.OpenIndex(relName, attributes[indexAttr].indexNo, ix_indexHandler);
+    }
     while (!feof(fp)) {
         isDup = false;
         memset(line, 0, tupleLength * 5);
@@ -399,9 +420,17 @@ RC SM_Manager::Load(const char *relName, const char *fileName) {
                 }
             }
         }
-        if(!isDup) rm_fileHandler.InsertRec(tuple, rid);
+        if(!isDup) {
+            rm_fileHandler.InsertRec(tuple, rid);
+            //如果有属性有索引,那么插入索引
+            if (hasIndex) {
+                ix_indexHandler.InsertEntry(&tuple[attributes[indexAttr].offset], rid);
+            }
+        }
     }
     rmm.CloseFile(rm_fileHandler);
+    if(hasIndex) ixm.CloseIndex(ix_indexHandler);
+
     delete[] line;
     return 0;
 }
@@ -444,7 +473,8 @@ bool SM_Manager::IsRelationExist(const char *relName) {
     return true;
 }
 
-bool SM_Manager::IsAttrInOneOfRelations(const char *attrName, int nRelations, const char *const *relations) {
+bool
+SM_Manager::IsAttrInOneOfRelations(const char *attrName, int nRelations, const char *const *relations, int &relNum) {
     RM_Record rec;
     rm_fileScan.OpenScan(attrcat_fhandler, STRING, MAXNAME, MAXNAME, EQ_OP, (void *) attrName);
     while (rm_fileScan.GetNextRec(rec) != RM_EOF) {
@@ -452,6 +482,7 @@ bool SM_Manager::IsAttrInOneOfRelations(const char *attrName, int nRelations, co
         for (int i = 0; i < nRelations; i++) {
             if (strcmp(attrcatTuple->relName, relations[i]) == 0) {
                 rm_fileScan.CloseScan();
+                relNum = i;
                 return true;
             }
         }

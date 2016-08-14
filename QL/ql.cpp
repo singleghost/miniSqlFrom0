@@ -11,7 +11,6 @@ QL_Manager::QL_Manager(SM_Manager &smm, IX_Manager &ixm, RM_Manager &rmm) : smm(
 
 RC QL_Manager::Select(int nSelAttrs, const RelAttr *selAttrs, int nRelations, const char *const *relations,
                       int nConditions, const Condition *conditions) {
-    bool bWildcard = false;
     //语义检查
     /*-------------------------------------------------------------*/
     //检查selattrs中有无重复的属性
@@ -28,21 +27,16 @@ RC QL_Manager::Select(int nSelAttrs, const RelAttr *selAttrs, int nRelations, co
     }
 
     //检查selAttrs中的属性是否都属于relations
-//    if (!(nSelAttrs == 1 && !strcmp(selAttrs[0].attrName, "*") && selAttrs[0].relName == nullptr)) {
-//        bWildcard = true;
-//    }
-//    if(!bWildcard) {
     if (!CheckAttrValid(nSelAttrs, selAttrs, nRelations, relations)) {
         return QL_ATTR_NOT_EXIST;
     }
-//    }
 
     //检查conditions中的属性是否存在
     if (!CheckCondAttrValid(nRelations, relations, nConditions, conditions)) {
         return QL_ATTR_NOT_EXIST;
     }
 
-    int i, j;
+    int i, k;
     /*-------------------------------------------------------------*/
     //构建查询计划树
     this->nRelations = nRelations;
@@ -62,9 +56,26 @@ RC QL_Manager::Select(int nSelAttrs, const RelAttr *selAttrs, int nRelations, co
         return QL_INCOMPATIBLE_COMP_OP;
     }
 
+    Condition cond;
+    vector<int> condsUsed;
     QL_RelNode *relNodes[nRelations];
+    bool hasCond;
     for (i = 0; i < nRelations; i++) {
-        relNodes[i] = new QL_RelNode(*this, relations[i]);
+        hasCond = false;
+        for(k = 0; k < nConditions; k++) {
+            if(conditions[k].bRhsIsAttr) continue;
+
+            int relNum;
+            if(smm.IsAttrInOneOfRelations(conditions[k].lhsAttr.attrName, nRelations, relations, relNum)) {
+                if(relNum == i) {
+                    cond = conditions[k];
+                    hasCond = true;
+                    condsUsed.push_back(k);
+                    break;
+                }
+            }
+        }
+        relNodes[i] = new QL_RelNode(*this, relations[i], cond, hasCond);
     }
     QL_JoinNode *joinNodes[nRelations - 1];
 
@@ -75,7 +86,16 @@ RC QL_Manager::Select(int nSelAttrs, const RelAttr *selAttrs, int nRelations, co
     }
 
     QL_SelNode *selNodes[nConditions];
+    bool skip;
     for (i = 0; i < nConditions; i++) {
+        skip = false;
+        for(int num : condsUsed) {
+            if(num == i) {
+                skip = true;
+                break;
+            }
+        }
+        if(skip) continue;
         selNodes[i] = new QL_SelNode(*this, *topNode, conditions[i]);
         topNode = selNodes[i];
     }
@@ -190,7 +210,7 @@ RC QL_Manager::Update(const char *relName, const RelAttr &updAttr, const int bIs
 
     /*----------------------构建查询树-----------------------------------*/
     QL_Node *topNode;
-    QL_RelNode *relNode = new QL_RelNode(*this, relName);
+    QL_RelNode *relNode = new QL_RelNode(*this, relName, Condition(), false);
     topNode = relNode;
     int i, j;
     QL_SelNode *selNodes[nConditions];
@@ -212,7 +232,7 @@ RC QL_Manager::Update(const char *relName, const RelAttr &updAttr, const int bIs
         if (rhsAttrInfo.attrType != updAttrInfo.attrType) return QL_INCOMPATIBLE_COMP_OP;
     }
 
-    //检查update的属性是否建立了索引,如果建立了索引,不能通过该属性indexscan来查询
+    //检查update的属性是否建立了索引,如果建立了索引,不能通过该属性indexscan来查询,在插入的同时要改变索引
     IX_IndexHandler ix_indexHandler;
     if (updAttrInfo.indexNo != NO_INDEX) {
         ixm.OpenIndex(relName, updAttrInfo.indexNo, ix_indexHandler);
@@ -273,7 +293,7 @@ RC QL_Manager::Delete(const char *relName, int nConditions, const Condition *con
     /*----------------------构建查询树-----------------------------------*/
     QL_Node *topNode;
     //bug
-    QL_RelNode *relNode = new QL_RelNode(*this, relName);
+    QL_RelNode *relNode = new QL_RelNode(*this, relName, Condition(), false);
     topNode = relNode;
     int i, j;
     QL_SelNode *selNodes[nConditions];
@@ -354,13 +374,15 @@ bool QL_Manager::HasDupTableName(int nRelations, const char *const *relations) {
 
 bool QL_Manager::CheckAttrValid(int nAttrs, const RelAttr *Attrs, int nRelations, const char *const relations[]) {
     int i, j;
+    int relNum;
     for (i = 0; i < nAttrs; i++) {
         if (Attrs[i].relName == NULL) {  //如果没有指定表名
-            if (!smm.IsAttrInOneOfRelations(Attrs[i].attrName, nRelations, relations)) {
+            if (!smm.IsAttrInOneOfRelations(Attrs[i].attrName, nRelations, relations, relNum)) {
                 return false;
             }
         } else {    //如果指定了表名
-            if (!smm.IsAttrInOneOfRelations(Attrs[i].attrName, 1, (const char *const *) &Attrs[i].relName)) {
+            if (!smm.IsAttrInOneOfRelations(Attrs[i].attrName, 1, (const char *const *) &Attrs[i].relName,
+                                            relNum)) {
                 return false;
             }
         }

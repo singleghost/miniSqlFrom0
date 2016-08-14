@@ -137,7 +137,7 @@ RC IX_PageHandler::Get_Loc_From_Key(CompOp compOp, Key &key, int &loc) const {
             loc = i;
             return 0;
         case LT_OP:
-            for(i = GetnCurPtr(); i >= 0; i--) {
+            for(i = GetnCurPtr() - 1; i >= 0; i--) {
                 if(GetLeafKey(i) < key) {
                     break;
                 }
@@ -145,7 +145,7 @@ RC IX_PageHandler::Get_Loc_From_Key(CompOp compOp, Key &key, int &loc) const {
             loc = i;
             return 0;
         case LE_OP:
-            for(i = GetnCurPtr(); i >= 0; i--) {
+            for(i = GetnCurPtr() - 1; i >= 0; i--) {
                 if(GetLeafKey(i) <= key) {
                     break;
                 }

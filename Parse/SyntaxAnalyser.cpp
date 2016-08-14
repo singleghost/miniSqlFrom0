@@ -24,7 +24,7 @@ void SyntaxAnalyser::BufferToken(const Token &tok) {
 RC SyntaxAnalyser::parseCommand() {
     RC rc;
     lexer.getCmd(stdin);
-    if (rc = Parse_S()) return rc;
+    if ((rc = Parse_S())) return rc;
     return 0;
 }
 

@@ -58,7 +58,7 @@ private:
     void ConvertFromAttrCatToAttrInfo(DataAttrInfo *attrInfo, AttrcatTuple *attrcatTuple);
 
     //一些提供给QL的接口
-    bool IsAttrInOneOfRelations(const char *attrName, int nRelations, const char * const relations[]);
+    bool IsAttrInOneOfRelations(const char *attrName, int nRelations, const char *const *relations, int &relNum);
     bool IsRelationExist(const char *relName);
     void FillDataAttrInfoForPrint(DataAttrInfo *dataAttrInfos, int nAttrs, const RelAttr *relAttrs, int nAttrInfos,
                                   AttrInfoInRecord *attrInfos);

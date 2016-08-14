@@ -120,7 +120,7 @@ private:
     QL_RelNode(const QL_RelNode &ql_node);
     QL_RelNode &operator =(QL_RelNode &ql_node);
 public:
-    QL_RelNode(QL_Manager &qlm, const char *const relation);    //关系名来初始化
+    QL_RelNode(QL_Manager &qlm, const char *const relation, const Condition &cond, bool hasCond);    //关系名来初始化
     virtual ~QL_RelNode();
     virtual void Open();
     virtual RC GetNext(RM_Record &rec);
@@ -132,7 +132,12 @@ private:
     RelcatTuple *relCatTuple;   //关系的catalog信息
     RM_FileHandler rm_fileHandler;
     RM_FileScan rm_fileScan;
-
+    IX_IndexHandler ix_indexHandler;
+    IX_IndexScan ix_indexScan;
+    Condition cond;   //选择条件
+    bool hasCond;
+    AttrInfoInRecord leftAttr;
+    bool useIndex;
 };
 
 class QL_Manager {

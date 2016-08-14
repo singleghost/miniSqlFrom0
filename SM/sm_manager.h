@@ -10,10 +10,6 @@
 #include "printer.h"
 #include "../Parse/parser.h"
 
-#define RELCAT_RECORD_SIZE (MAXNAME + sizeof(int) * 3)
-#define ATTRCAT_RECORD_SIZE (MAXNAME + MAXNAME + sizeof(int) + sizeof(AttrType) + sizeof(int) + sizeof(int))
-#define NO_INDEX -1 //attrcat表中属性上没有建索引时indexNo的值
-
 //RC code
 #define SM_TABLE_NOT_EXIST (START_SM_ERR-1)
 #define SM_DUPLICATE_TABLE (START_SM_ERR-2)
@@ -21,6 +17,7 @@
 #define SM_DATA_FILE_NOT_EXIST (START_SM_ERR-4)
 #define SM_ATTR_NOT_FOUND (START_SM_ERR-5)
 #define SM_NO_INDEX_ON_ATTR (START_SM_ERR-6)
+#define SM_PRIMARY_KEY_DUP (START_SM_ERR-7)
 
 struct RelcatTuple {
     char relName[MAXNAME];
@@ -36,7 +33,12 @@ struct AttrcatTuple {
     AttrType attrType;
     int attrLength;
     int indexNo;
+    int bIsPrimary;
 };
+
+#define RELCAT_RECORD_SIZE (sizeof(RelcatTuple))
+#define ATTRCAT_RECORD_SIZE (sizeof(AttrcatTuple))
+#define NO_INDEX -1 //attrcat表中属性上没有建索引时indexNo的值
 
 class SM_Manager {
     friend class QL_Manager;
@@ -64,8 +66,7 @@ private:
     void FillRelCatTuples(RelcatTuple *relcatTuples, int nRelations, const char * const relations[]);
     void FillAttrInfoInRecords(AttrInfoInRecord *attrInfos, int nRelations, const RelcatTuple *relCatTuples);
     void FillRelAttrs(int nRelations, const char *const *relations, vector<RelAttr> &relAttrs);
-    static void createRelCatTuple(const char *relName, int tupleLength, int attrCount, int indexCount, char *relcat_rec);
-    static void createAttrCatTuple(const char *relName, const char *attrName, int offset, AttrType attrType, int attrLength, int indexNo, char *attrcat_rec);
+
 public:
     SM_Manager  (IX_Manager &ixm, RM_Manager &rmm) : ixm(ixm), rmm(rmm) {}  // Constructor
     ~SM_Manager () {};                                  // Destructor
@@ -88,6 +89,10 @@ public:
                     const char *value);
 
 
+    static void createRelCatTuple(const char *relName, int tupleLength, int attrCount, int indexCount, char *relcat_rec);
+
+    static void createAttrCatTuple(const char *relName, const char *attrName, int offset, AttrType attrType, int attrLength,
+                                       int indexNo, int bIsPrimary, char *attrcat_rec);
 };
 
 void SM_PrintError(RC rc);

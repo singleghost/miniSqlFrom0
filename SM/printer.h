@@ -57,6 +57,8 @@ struct DataAttrInfo
     AttrType attrType;              // Type of attribute
     int      attrLength;            // Length of attribute
     int      indexNo;               // Index number of attribute
+    int      isPrimary;              //是否是主键
+
 };
 
 // Print some number of spaces

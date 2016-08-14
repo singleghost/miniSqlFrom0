@@ -42,6 +42,8 @@ RC SyntaxAnalyser::Parse_S() {
     vector<Condition> conds;
     vector<Value> values;
     vector<AttrInfo> attrDefs;
+    hasPrimary = false;
+
     if ((GetNextToken(tok))) return LEX_ERR;
     switch (tok.kind) {
         case SELECT :
@@ -316,7 +318,7 @@ RC SyntaxAnalyser::Parse_attrDefList(vector<AttrInfo> &attrDefs) {
     RC rc;
     Token tok;
     AttrInfo attrInfo;
-    if (Parse_attrDef(attrInfo)) return SYNTAX_ERR;
+    if (rc = Parse_attrDef(attrInfo)) return rc;
     attrDefs.push_back(attrInfo);
     while (true) {
         if (GetNextToken(tok)) return LEX_ERR;
@@ -331,9 +333,7 @@ RC SyntaxAnalyser::Parse_attrDefList(vector<AttrInfo> &attrDefs) {
 }
 
 RC SyntaxAnalyser::Parse_attrDef(AttrInfo &attrInfo) {
-    RC rc;
     Token tok;
-    AttrType attrType;
     if (GetNextToken(tok)) return LEX_ERR;
     if (tok.kind == IDENTIFIER) {
         attrInfo.attrName = new char[tok.len];
@@ -341,8 +341,12 @@ RC SyntaxAnalyser::Parse_attrDef(AttrInfo &attrInfo) {
         if (Parse_attrType(attrInfo)) return SYNTAX_ERR;
         if (GetNextToken(tok)) return LEX_ERR;
         if (tok.kind == PRIMARY) {
+            if(hasPrimary) return QL_PRIMARY_KEY_DUP;
+            hasPrimary = true;
+            attrInfo.bIsPrimary = 1;
             return 0;
         } else {
+            attrInfo.bIsPrimary = 0;
             BufferToken(tok);
             return 0;
         }
@@ -569,7 +573,7 @@ RC SyntaxAnalyser::Parse_literalList(vector<Value> &values) {
     return SYNTAX_ERR;
 }
 
-const char *ps_error_msg[] = { "Parser: unrecognizable token", "Parser: syntax check error"};
+const char *ps_error_msg[] = { "Parser: unrecognizable token", "Parser: syntax check error", "define too many primary keys"};
 void PS_PrintError(RC rc) {
 
     printf("Error: %s\n", ps_error_msg[START_PARSER_ERR - 1 - rc]);

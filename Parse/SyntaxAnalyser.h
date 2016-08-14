@@ -10,8 +10,10 @@
 #include "../QL/ql.h"
 #include <vector>
 
+//RC code
 #define LEX_ERR (START_PARSER_ERR - 1)
 #define SYNTAX_ERR (START_PARSER_ERR - 2)
+#define DEFINE_TOO_MANY_PRIMARY_KEYS (START_PARSER_ERR - 3)
 
 struct Literal {
     int i;
@@ -45,6 +47,7 @@ private:
 
     QL_Manager qlm;
     SM_Manager smm;
+    bool hasPrimary;    //create table语句的时候使用,指示是否已经定义一个属性为主键
 
 public:
     SyntaxAnalyser(QL_Manager &qlm, SM_Manager &smm) : qlm(qlm), smm(smm) {}

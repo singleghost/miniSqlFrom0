@@ -18,7 +18,8 @@
 #define QL_ATTR_NOT_EXIST (START_QL_ERR-3)
 #define QL_TABLE_NOT_EXIST (START_QL_ERR-4)
 #define QL_INCOMPATIBLE_COMP_OP (START_QL_ERR-5)
-#define QL_EOF (START_QL_ERR-6)
+#define QL_PRIMARY_KEY_DUP (START_QL_ERR - 6)
+#define QL_EOF (START_QL_ERR-7)
 
 using std::ostream;
 

@@ -23,7 +23,7 @@ typedef int PagePtr;    //页指针
 //返回码
 #define IX_PAGE_NOT_IN_USE -1
 #define IX_NO_SUCH_ENTRY -2
-#define IX_NO_MORE_ENTRY -3
+#define IX_EOF -3
 #define IX_KEY_NOT_FOUND -4
 
 //数据结构

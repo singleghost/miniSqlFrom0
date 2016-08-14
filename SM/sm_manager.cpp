@@ -45,7 +45,7 @@ RC SM_Manager::CreateTable(const char *relName, int attrCount, AttrInfo *attribu
     int offset = 0;
     for (int i = 0; i < attrCount; i++) {
         createAttrCatTuple(relName, attributes[i].attrName, offset, attributes[i].attrType, attributes[i].attrLength,
-                           -1, attrcatTuple);
+                           -1, attributes[i].bIsPrimary, attrcatTuple);
         offset += attributes[i].attrLength;
         attrcat_fhandler.InsertRec(attrcatTuple, rid);
     }
@@ -132,6 +132,8 @@ RC SM_Manager::CreateIndex(const char *relName, const char *attrName) {
 
     //创建index文件
     ixm.CreateIndex(relName, attrTuple->indexNo, attrTuple->attrType, attrTuple->attrLength);
+    //如果表中已经有数据,将数据插入index中
+    //TODO
     return 0;
 }
 
@@ -204,21 +206,21 @@ RC SM_Manager::Help(const char *relName) {
     AttrcatTuple *attrcatTuple;
     char type[10];
     rm_fileScan.OpenScan(attrcat_fhandler, STRING, MAXNAME, 0, EQ_OP, (void *) relName);
-    printf("-----------------------------------------------------------------\n");
+    printf("---------------------------------------------------------------------\n");
     printf("table structure of `%s`\n", relName);
-    printf("-----------------------------------------------------------------\n");
-    printf("|attrName\t\t\t\t|type    |length    |offset\t\n");
-    printf("-----------------------------------------------------------------\n");
+    printf("---------------------------------------------------------------------\n");
+    printf("|attrName\t\t\t\t|type    |length    |offset\t\t|isPrimary\t\n");
+    printf("---------------------------------------------------------------------\n");
     while (rm_fileScan.GetNextRec(rec) != RM_EOF) {
         attrcatTuple = (AttrcatTuple *) rec.GetContent();
         if (attrcatTuple->attrType == INT) strcpy(type, "int");
         if (attrcatTuple->attrType == FLOAT) strcpy(type, "float");
         if (attrcatTuple->attrType == STRING) strcpy(type, "string");
 
-        printf("|%-23s|%-8s|%-10d|%-10d\n", attrcatTuple->attrName, type, attrcatTuple->attrLength,
-               attrcatTuple->offset);
+        printf("|%-23s|%-8s|%-10d|%-11d|%-10d\n", attrcatTuple->attrName, type, attrcatTuple->attrLength,
+               attrcatTuple->offset, attrcatTuple->bIsPrimary);
     }
-    printf("-----------------------------------------------------------------\n\n");
+    printf("---------------------------------------------------------------------\n\n");
     rm_fileScan.CloseScan();
     return 0;
 }
@@ -257,6 +259,7 @@ RC SM_Manager::Print(const char *relName) {
         attributes[i].attrLength = attrcatTuple->attrLength;
         attributes[i].attrType = attrcatTuple->attrType;
         attributes[i].indexNo = attrcatTuple->indexNo;
+
         i++;
     }
     rfs.CloseScan();
@@ -294,7 +297,7 @@ RC SM_Manager::Print(const char *relName) {
 }
 
 RC SM_Manager::Load(const char *relName, const char *fileName) {
-
+    RM_FileScan fileScan;
     AttrcatTuple *attrcatTuple;
     RelcatTuple *relcatTuple;
 
@@ -324,6 +327,7 @@ RC SM_Manager::Load(const char *relName, const char *fileName) {
         attributes[i].attrLength = attrcatTuple->attrLength;
         attributes[i].attrType = attrcatTuple->attrType;
         attributes[i].indexNo = attrcatTuple->indexNo;
+        attributes[i].isPrimary = attrcatTuple->bIsPrimary;
         tupleLength += attributes[i].attrLength;
         i++;
     }
@@ -339,7 +343,9 @@ RC SM_Manager::Load(const char *relName, const char *fileName) {
     char *line = new char[tupleLength * 5]; //设置一个足够大的能容纳一个tuple的数组
     char *attrEnd;
     char tuple[tupleLength];
+    bool isDup;
     while (!feof(fp)) {
+        isDup = false;
         memset(line, 0, tupleLength * 5);
         fgets(line, tupleLength * 5, fp);   //读取文件的一行
         if (strcmp(line, "") == 0) break;    //判断是否读取了空行
@@ -364,7 +370,36 @@ RC SM_Manager::Load(const char *relName, const char *fileName) {
             if (attrEnd == NULL) break;  //最后一个属性
             attrBegin = attrEnd + 1;
         }
-        rm_fileHandler.InsertRec(tuple, rid);
+        //先检查是否会和primary属性冲突
+        int i;
+        RM_Record rec;
+        for (i = 0; i < attrCount; i++) {
+            if (attributes[i].isPrimary) {
+                if(attributes[i].indexNo != NO_INDEX) {
+                    IX_IndexScan indexScan;
+                    IX_IndexHandler indexHandler;
+                    ixm.OpenIndex(relName, attributes[i].indexNo, indexHandler);
+                    indexScan.OpenScan(indexHandler, EQ_OP, tuple + attributes[i].offset);
+                    if(indexScan.GetNextEntry(rid) != IX_EOF) {
+                        isDup = true;
+                        printf("warning: duplicate primary key value\n");
+                    }
+                    indexScan.CloseScan();
+                    break;
+
+                } else {
+                    fileScan.OpenScan(rm_fileHandler, attributes[i].attrType, attributes[i].attrLength,
+                                      attributes[i].offset, EQ_OP, tuple + attributes[i].offset);
+                    if (fileScan.GetNextRec(rec) != RM_EOF) {
+                        isDup = true;
+                        printf("warning: duplicate primary key value\n");
+                    }
+                    fileScan.CloseScan();
+                    break;  //最多只有一个主键
+                }
+            }
+        }
+        if(!isDup) rm_fileHandler.InsertRec(tuple, rid);
     }
     rmm.CloseFile(rm_fileHandler);
     delete[] line;
@@ -385,15 +420,16 @@ void SM_Manager::createRelCatTuple(const char *relName, int tupleLength, int att
 
 }
 
-void SM_Manager::createAttrCatTuple(const char *relName, const char *attrName, int offset, AttrType attrType,
-                                    int attrLength, int indexNo, char *attrcat_rec) {
-    strcpy(attrcat_rec, relName);
-    strcpy(attrcat_rec + MAXNAME, attrName);
-    *(int *) (&attrcat_rec[MAXNAME * 2]) = offset;
-    *(AttrType *) (&attrcat_rec[MAXNAME * 2 + sizeof(int)]) = attrType;
-    *(int *) (&attrcat_rec[MAXNAME * 2 + sizeof(int) + sizeof(AttrType)]) = attrLength;
-    *(int *) (&attrcat_rec[MAXNAME * 2 + sizeof(int) + sizeof(AttrType) + sizeof(int)]) = indexNo;
-
+void SM_Manager::createAttrCatTuple(const char *relName, const char *attrName, int offset, AttrType attrType, int attrLength,
+                                    int indexNo, int bIsPrimary, char *attrcat_rec) {
+    AttrcatTuple *attrcatTuple = (AttrcatTuple *) attrcat_rec;
+    strncpy(attrcatTuple->relName, relName, MAXNAME);
+    strncpy(attrcatTuple->attrName, attrName, MAXNAME);
+    attrcatTuple->offset = offset;
+    attrcatTuple->attrType = attrType;
+    attrcatTuple->attrLength = attrLength;
+    attrcatTuple->indexNo = indexNo;
+    attrcatTuple->bIsPrimary = bIsPrimary;
 }
 
 bool SM_Manager::IsRelationExist(const char *relName) {
@@ -535,7 +571,7 @@ void SM_Manager::ConvertFromAttrCatToAttrInfo(AttrInfoInRecord *attrInfo, Attrca
     attrInfo->attrType = attrcatTuple->attrType;
     attrInfo->offset = attrcatTuple->offset;
     attrInfo->indexNo = attrcatTuple->indexNo;
-
+    attrInfo->isPrimary = attrcatTuple->bIsPrimary;
 }
 
 void SM_Manager::ConvertFromAttrCatToAttrInfo(DataAttrInfo *attrInfo, AttrcatTuple *attrcatTuple) {
@@ -547,7 +583,7 @@ void SM_Manager::ConvertFromAttrCatToAttrInfo(DataAttrInfo *attrInfo, AttrcatTup
     attrInfo->attrType = attrcatTuple->attrType;
     attrInfo->offset = attrcatTuple->offset;
     attrInfo->indexNo = attrcatTuple->indexNo;
-
+    attrInfo->isPrimary = attrcatTuple->bIsPrimary;
 }
 
 const char *sm_error_msg[] = {"SM: table not exist", "SM: table name exists in database",

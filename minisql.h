@@ -100,6 +100,7 @@ struct AttrInfoInRecord {   //字段与AttrCatTuple完全相同,offset字段含�
     AttrType attrType;
     int attrLength;
     int indexNo;
+    int isPrimary;
 };
 
 //

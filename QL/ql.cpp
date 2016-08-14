@@ -32,9 +32,9 @@ RC QL_Manager::Select(int nSelAttrs, const RelAttr *selAttrs, int nRelations, co
 //        bWildcard = true;
 //    }
 //    if(!bWildcard) {
-        if (!CheckAttrValid(nSelAttrs, selAttrs, nRelations, relations)) {
-            return QL_ATTR_NOT_EXIST;
-        }
+    if (!CheckAttrValid(nSelAttrs, selAttrs, nRelations, relations)) {
+        return QL_ATTR_NOT_EXIST;
+    }
 //    }
 
     //检查conditions中的属性是否存在
@@ -57,20 +57,6 @@ RC QL_Manager::Select(int nSelAttrs, const RelAttr *selAttrs, int nRelations, co
     attrInfosArr = new AttrInfoInRecord[ntotAttrInfo];
     smm.FillAttrInfoInRecords(attrInfosArr, nRelations, relcatTuples);
 
-    int nSelectAttrs;
-    RelAttr *selectAttrs;
-//    if (nSelAttrs == 1 && selAttrs[0].relName == nullptr && !strcmp(selAttrs[0].attrName, "*")) {
-//        nSelectAttrs = ntotAttrInfo;
-//        selectAttrs = new RelAttr[nSelectAttrs];
-//        for (i = 0; i < ntotAttrInfo; i++) {
-//            strcpy(selectAttrs[i].relName, attrInfosArr[i].relName);
-//            strcpy(selectAttrs[i].attrName, attrInfosArr[i].attrName);
-//        }
-//    } else {
-//        nSelectAttrs = nSelAttrs;
-//        selectAttrs = new RelAttr[nSelectAttrs];
-//        memcpy(selectAttrs,)
-//    }
     //属性和比较值(属性)的类型是否一致
     if (!CheckCondCompTypeConsistent(nConditions, conditions)) {
         return QL_INCOMPATIBLE_COMP_OP;
@@ -124,6 +110,7 @@ RC QL_Manager::Select(int nSelAttrs, const RelAttr *selAttrs, int nRelations, co
 
 RC QL_Manager::Insert(const char *relName, int nValues, const Value *values) {
     RM_FileHandler rm_fileHandler;
+    RM_FileScan fileScan;
     rmm.OpenFile(relName, rm_fileHandler);
 
     relcatTuples = new RelcatTuple;
@@ -132,17 +119,45 @@ RC QL_Manager::Insert(const char *relName, int nValues, const Value *values) {
     attrInfosArr = new AttrInfoInRecord[relcatTuples->attrCount];
     smm.FillAttrInfoInRecords(attrInfosArr, 1, relcatTuples);
 
+    //先检查是否会和primary属性冲突
+    int i;
+    RM_Record rec;
+    RID rid;
+    for (i = 0; i < ntotAttrInfo; i++) {
+        if (attrInfosArr[i].isPrimary) {
+            if(attrInfosArr[i].indexNo != NO_INDEX) {
+                IX_IndexScan indexScan;
+                IX_IndexHandler indexHandler;
+                ixm.OpenIndex(relName, attrInfosArr[i].indexNo, indexHandler);
+                indexScan.OpenScan(indexHandler, EQ_OP, values[i].data);
+                if (indexScan.GetNextEntry(rid) != IX_EOF) {
+                    indexScan.CloseScan();
+                    return QL_PRIMARY_KEY_DUP;
+                }
+                indexScan.CloseScan();
+                break;
+            } else {
+                fileScan.OpenScan(rm_fileHandler, attrInfosArr[i].attrType, attrInfosArr[i].attrLength,
+                                  attrInfosArr[i].offset, EQ_OP, values[i].data);
+                if (fileScan.GetNextRec(rec) != RM_EOF) {
+                    fileScan.CloseScan();
+                    return QL_PRIMARY_KEY_DUP;
+                }
+                fileScan.CloseScan();
+                break;  //最多只有一个主键
+            }
+        }
+    }
+
     char *buffer = (char *) calloc(relcatTuples->tupleLength, 1);
     int offset = 0;
     for (int i = 0; i < nValues; i++) {
         memcpy(buffer + offset, values[i].data, attrInfosArr[i].attrLength);
         offset += attrInfosArr[i].attrLength;
     }
-    RID rid;
     rm_fileHandler.InsertRec(buffer, rid);
     rmm.CloseFile(rm_fileHandler);
     //对index的处理
-    int i;
     bool bHasIndex = false;
     //判断有没有属性有index
     for (i = 0; i < ntotAttrInfo; i++) {
@@ -429,8 +444,9 @@ void QL_Manager::GetAttrInfoByRelAttr(AttrInfoInRecord &attrInfo, const RelAttr 
 
 }
 
-const char *ql_error_msg[] = {"duplicate attribute name", "duplicate table name", "attribute not exist", "table not exist",
-                           "incompatible compare operators", "QL EOF"};
+const char *ql_error_msg[] = {"duplicate attribute name", "duplicate table name", "attribute not exist",
+                              "table not exist",
+                              "incompatible compare operators", "priamry key duplicate", "QL EOF"};
 
 void QL_PrintError(RC rc) {
     printf("Error: %s\n", ql_error_msg[START_QL_ERR - 1 - rc]);

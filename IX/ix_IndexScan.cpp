@@ -21,6 +21,7 @@ RC IX_IndexScan::OpenScan(const IX_IndexHandler &indexHandler, CompOp compOp, vo
 
 RC IX_IndexScan::GetNextEntry(RID &rid) {
     if (!this->bScanIsOpen) return -1;
+    if(indexHandler.ix_fh.rootNode == NO_ROOT_NODE) return IX_EOF;
     IX_PageHandler ix_pageHandler;
     if (curPage == -1 && curLoc == -1) {
         curPage = indexHandler.Search(indexHandler.ix_fh.rootNode, this->key);

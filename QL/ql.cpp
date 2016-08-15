@@ -313,7 +313,7 @@ RC QL_Manager::Delete(const char *relName, int nConditions, const Condition *con
             break;
         }
     }
-    if (bHasIndex) ixm.OpenIndex(relName, attrInfosArr[i].indexNo, ix_indexHandler);
+    if (bHasIndex) ixm.OpenIndex(relName, attrInfosArr[indexedAttrNo].indexNo, ix_indexHandler);
     RM_Record rec;
     RM_FileHandler rm_fileHandler;
     rmm.OpenFile(relName, rm_fileHandler);

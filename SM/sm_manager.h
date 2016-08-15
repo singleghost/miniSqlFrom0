@@ -18,6 +18,7 @@
 #define SM_ATTR_NOT_FOUND (START_SM_ERR-5)
 #define SM_NO_INDEX_ON_ATTR (START_SM_ERR-6)
 #define SM_PRIMARY_KEY_DUP (START_SM_ERR-7)
+#define SM_INDEX_ONLY_ON_PRIMARY (START_SM_ERR-8)
 
 struct RelcatTuple {
     char relName[MAXNAME];

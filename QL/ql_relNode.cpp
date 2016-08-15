@@ -24,6 +24,7 @@ QL_RelNode::QL_RelNode(QL_Manager &qlm, const char *const relation, const Condit
     attrInfos = new AttrInfoInRecord[nAttrInfos];
 
     qlm.smm.FillAttrInfoInRecords(attrInfos, 1, relCatTuple);
+    useIndex = false;
     if (hasCond) {
         int i;
         //初始化leftAttr
@@ -44,14 +45,13 @@ QL_RelNode::QL_RelNode(QL_Manager &qlm, const char *const relation, const Condit
 
         }
         assert(cond.bRhsIsAttr == false);   //右值不能是属性
+        if (leftAttr.indexNo != NO_INDEX) useIndex = true;
     }
-    if (leftAttr.isPrimary) useIndex = true;
-    else useIndex = false;
 }
 
 void QL_RelNode::Open() {
     qlm.rmm.OpenFile(relName, rm_fileHandler);
-    if (useIndex) {
+    if (useIndex && hasCond) {
         qlm.ixm.OpenIndex(relName, leftAttr.indexNo, ix_indexHandler);
         ix_indexScan.OpenScan(ix_indexHandler, cond.op, cond.rhsValue.data);
     } else {

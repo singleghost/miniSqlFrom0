@@ -102,9 +102,12 @@ RC SM_Manager::CreateIndex(const char *relName, const char *attrName) {
     while (rm_fileScan.GetNextRec(tRec) != RM_EOF) {
         AttrcatTuple *attrcatTuple = (AttrcatTuple *) tRec.GetContent();
         if (strncmp(attrcatTuple->attrName, attrName, MAXNAME) == 0) {
-            if (attrcatTuple->indexNo != -1) {
+            if (attrcatTuple->indexNo != NO_INDEX) {
                 rm_fileScan.CloseScan();
                 return SM_DUPLICATE_INDEX;
+            }
+            if (!attrcatTuple->bIsPrimary) {
+                return SM_INDEX_ONLY_ON_PRIMARY;
             }
         }
     }
@@ -139,7 +142,7 @@ RC SM_Manager::CreateIndex(const char *relName, const char *attrName) {
     rmm.OpenFile(relName, rm_fileHandler);
     RM_FileScan fileScan;
     fileScan.OpenScan(rm_fileHandler, INT, 4, 0, NO_OP, NULL);
-    while(fileScan.GetNextRec(rec) != RM_EOF) {
+    while (fileScan.GetNextRec(rec) != RM_EOF) {
         indexHandler.InsertEntry(rec.GetContent(), rec.GetRid());
     }
     fileScan.CloseScan();
@@ -342,7 +345,7 @@ RC SM_Manager::Load(const char *relName, const char *fileName) {
         attributes[i].indexNo = attrcatTuple->indexNo;
         attributes[i].isPrimary = attrcatTuple->bIsPrimary;
         tupleLength += attributes[i].attrLength;
-        if(attributes[i].indexNo != NO_INDEX) {
+        if (attributes[i].indexNo != NO_INDEX) {
             hasIndex = true;
             indexAttr = i;
         }
@@ -362,7 +365,7 @@ RC SM_Manager::Load(const char *relName, const char *fileName) {
     char tuple[tupleLength];
     bool isDup;
     IX_IndexHandler ix_indexHandler;
-    if(hasIndex) {
+    if (hasIndex) {
         ixm.OpenIndex(relName, attributes[indexAttr].indexNo, ix_indexHandler);
     }
     while (!feof(fp)) {
@@ -375,11 +378,11 @@ RC SM_Manager::Load(const char *relName, const char *fileName) {
         for (i = 0; i < attrCount; i++) {    //循环读取每一个属性
             attrEnd = strchr(attrBegin, ',');
             if (attributes[i].attrType == STRING) {
-                if(attrEnd != NULL) {
+                if (attrEnd != NULL) {
                     strncpy((char *) (tuple + attributes[i].offset), attrBegin,
                             min(attributes[i].attrLength, attrEnd - attrBegin));
                 } else {
-                    strncpy((char *)(tuple + attributes[i].offset), attrBegin, strlen(attrBegin) - 1);
+                    strncpy((char *) (tuple + attributes[i].offset), attrBegin, strlen(attrBegin) - 1);
                 }
             }
             else if (attributes[i].attrType == INT) {
@@ -396,12 +399,12 @@ RC SM_Manager::Load(const char *relName, const char *fileName) {
         RM_Record rec;
         for (i = 0; i < attrCount; i++) {
             if (attributes[i].isPrimary) {
-                if(attributes[i].indexNo != NO_INDEX) {
+                if (attributes[i].indexNo != NO_INDEX) {
                     IX_IndexScan indexScan;
                     IX_IndexHandler indexHandler;
                     ixm.OpenIndex(relName, attributes[i].indexNo, indexHandler);
                     indexScan.OpenScan(indexHandler, EQ_OP, tuple + attributes[i].offset);
-                    if(indexScan.GetNextEntry(rid) != IX_EOF) {
+                    if (indexScan.GetNextEntry(rid) != IX_EOF) {
                         isDup = true;
                         printf("warning: duplicate primary key value\n");
                     }
@@ -420,7 +423,7 @@ RC SM_Manager::Load(const char *relName, const char *fileName) {
                 }
             }
         }
-        if(!isDup) {
+        if (!isDup) {
             rm_fileHandler.InsertRec(tuple, rid);
             //如果有属性有索引,那么插入索引
             if (hasIndex) {
@@ -429,7 +432,7 @@ RC SM_Manager::Load(const char *relName, const char *fileName) {
         }
     }
     rmm.CloseFile(rm_fileHandler);
-    if(hasIndex) ixm.CloseIndex(ix_indexHandler);
+    if (hasIndex) ixm.CloseIndex(ix_indexHandler);
 
     delete[] line;
     return 0;
@@ -449,8 +452,9 @@ void SM_Manager::createRelCatTuple(const char *relName, int tupleLength, int att
 
 }
 
-void SM_Manager::createAttrCatTuple(const char *relName, const char *attrName, int offset, AttrType attrType, int attrLength,
-                                    int indexNo, int bIsPrimary, char *attrcat_rec) {
+void
+SM_Manager::createAttrCatTuple(const char *relName, const char *attrName, int offset, AttrType attrType, int attrLength,
+                               int indexNo, int bIsPrimary, char *attrcat_rec) {
     AttrcatTuple *attrcatTuple = (AttrcatTuple *) attrcat_rec;
     strncpy(attrcatTuple->relName, relName, MAXNAME);
     strncpy(attrcatTuple->attrName, attrName, MAXNAME);
@@ -620,7 +624,8 @@ void SM_Manager::ConvertFromAttrCatToAttrInfo(DataAttrInfo *attrInfo, AttrcatTup
 const char *sm_error_msg[] = {"SM: table not exist", "SM: table name exists in database",
                               "SM: index has been created on such attribute",
                               "SM: data file not exist in `load` command",
-                              "SM: attribute not found", "SM: no index created on specified attribute"};
+                              "SM: attribute not found", "SM: no index created on specified attribute",
+                              "primary key duplicate", "SM: index can be only created only primary attribute"};
 
 void SM_PrintError(RC rc) {
     printf("Error: %s\n", sm_error_msg[START_SM_ERR - 1 - rc]);

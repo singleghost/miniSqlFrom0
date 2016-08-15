@@ -146,6 +146,7 @@ RC IX_IndexHandler::GetThisPage(int pageNum, IX_PageHandler &ix_pageHandler) {
 }
 
 int IX_IndexHandler::Search(int page, const Key &key){
+    assert(page >= 0);
     IX_PageHandler ix_pageHandler;
     if (GetThisPage(page, ix_pageHandler) == PF_PAGE_NOT_IN_USE) {
         printf("IX_PAGE_NOT_IN_USE\n");

@@ -50,3 +50,4 @@ offset	    |offset in bytes from beginning of tuple
 attrType    |	attribute type
 attrLenth   |	attribute length
 indexNo	    |index number, or -1 if not indexed
+isPrimary   | 1 if attribute is primary, or 0 if not

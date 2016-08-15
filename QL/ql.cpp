@@ -206,9 +206,18 @@ RC QL_Manager::Update(const char *relName, const RelAttr &updAttr, const int bIs
         if (!CheckAttrValid(1, &rhsRelAttr, 1, &relName)) return QL_ATTR_NOT_EXIST;
     }
     if (!CheckCondAttrValid(1, &relName, nConditions, conditions)) return QL_ATTR_NOT_EXIST;
-    if (!CheckCondCompTypeConsistent(nConditions, conditions)) return QL_INCOMPATIBLE_COMP_OP;
+
+    relcatTuples = new RelcatTuple;
+    smm.FillRelCatTuples(relcatTuples, 1, &relName);
+    nRelations = 1;
+    ntotAttrInfo = relcatTuples->attrCount;
+    attrInfosArr = new AttrInfoInRecord[relcatTuples->attrCount];
+
+    smm.FillAttrInfoInRecords(attrInfosArr, 1, relcatTuples);
 
     /*----------------------构建查询树-----------------------------------*/
+    if (!CheckCondCompTypeConsistent(nConditions, conditions)) return QL_INCOMPATIBLE_COMP_OP;
+
     QL_Node *topNode;
     QL_RelNode *relNode = new QL_RelNode(*this, relName, Condition(), false);
     topNode = relNode;
@@ -218,12 +227,7 @@ RC QL_Manager::Update(const char *relName, const RelAttr &updAttr, const int bIs
         selNodes[i] = new QL_SelNode(*this, *topNode, conditions[i]);
         topNode = selNodes[i];
     }
-    relcatTuples = new RelcatTuple;
-    smm.FillRelCatTuples(relcatTuples, 1, &relName);
-    ntotAttrInfo = relcatTuples->attrCount;
-    attrInfosArr = new AttrInfoInRecord[relcatTuples->attrCount];
 
-    smm.FillAttrInfoInRecords(attrInfosArr, 1, relcatTuples);
     AttrInfoInRecord updAttrInfo;
     GetAttrInfoByRelAttr(updAttrInfo, updAttr);
     AttrInfoInRecord rhsAttrInfo;

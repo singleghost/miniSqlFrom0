@@ -1,5 +1,4 @@
-# The RQL Select Command
-The syntax of the one data retrieval command in RQL is:
+## The RQL Select Command
 
     Select A1, A2, …, Am
     From R1, R2, …, Rn
@@ -13,4 +12,15 @@ An alternative form of the Select command is:
     From R1, R2, …, Rn
     [Where A1’ comp1 AV1 And A2’ comp2 AV2 And … And Ak’ compk AVk];
 
-The interpretation of this command is the same as for the first form of the command, except that every attribute of each satisfying tuple t in the cross-product is returned. That is, the command is equivalent to one in which the * in the Select clause is replaced by a list of all attributes of all relations R1, R2, …, Rn in the From clause.
+
+## The RQL Delete Command
+
+    Delete from R1
+    [Where A1’ comp1 AV1 And A2’ comp2 AV2 And … And Ak’ compk AVk];
+    
+## The RQL Updata Command
+    Update R1 set A1 = AV1 
+    [Where A1’ comp1 AV1' And A2’ comp2 AV2' And … And Ak’ compk AVk'];
+    
+## The RQL Insert Command
+    Insert into R1 values ( V1, V2, ..., Vk );

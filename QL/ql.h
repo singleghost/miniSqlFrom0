@@ -84,10 +84,10 @@ public:
 private:
     QL_Node &prevNode;  //前一个节点
     Condition cond;   //选择条件
-    bool (*compfunc)(const void *value1, const void *value2, AttrType attrType, int attrLength);
+    bool (*compfunc)(const void *value1, const void *value2, AttrType attrType, int attrLength);    //比较函数
 
-    AttrInfoInRecord leftAttr;
-    AttrInfoInRecord rightAttr;
+    AttrInfoInRecord leftAttr;  //condition中的左属性
+    AttrInfoInRecord rightAttr; //condition中的右属性
 
 };
 
@@ -134,10 +134,11 @@ private:
     RM_FileScan rm_fileScan;
     IX_IndexHandler ix_indexHandler;
     IX_IndexScan ix_indexScan;
+
+    bool hasCond;       //是否有选择条件
     Condition cond;   //选择条件
-    bool hasCond;
-    AttrInfoInRecord leftAttr;
-    bool useIndex;
+    AttrInfoInRecord leftAttr;  //如果有conditon的情况,左属性
+    bool useIndex;      //迭代时是否使用indexScan
 };
 
 class QL_Manager {
@@ -153,19 +154,19 @@ private:
     RM_Manager &rmm;
 
     RelcatTuple *relcatTuples;  //每次操作所有的relation catalog
-    int nRelations;
+    int nRelations;             //每次操作用到的表的数量
     AttrInfoInRecord *attrInfosArr;    //每次操作要用到的所有的attrInfo
     int ntotAttrInfo;                  //每次操作用的的所有attrInfo的数量
 
-    bool HasDupAttrName(int nAttrs, const RelAttr Attrs[]);
-    bool HasDupTableName(int nRelations, const char * const relations[]);
-    bool CheckTablesValid(int nRelations, const char * const relations[]);
-    bool CheckAttrValid(int nAttrs, const RelAttr Attrs[], int nRelations, const char * const relations[]);
+    bool HasDupAttrName(int nAttrs, const RelAttr Attrs[]);                 //检查是否有重复的属性名
+    bool HasDupTableName(int nRelations, const char * const relations[]);   //检查是否有重复的表名
+    bool CheckTablesValid(int nRelations, const char * const relations[]);  //检查表是否存在
+    bool CheckAttrValid(int nAttrs, const RelAttr Attrs[], int nRelations, const char * const relations[]); //检查属性是否存在
     bool CheckCondAttrValid(int nRelations, const char *const relations[], int nCondions, const Condition conditions[]);
+    //检查conditions中的属性是否存在
+    bool CheckCondCompTypeConsistent(int nConditions, const Condition *conditions); //检查conditions中的左右类型是否一致
 
-    bool CheckCondCompTypeConsistent(int nConditions, const Condition *conditions);
-
-    void GetAttrInfoByRelAttr(AttrInfoInRecord &attrInfo, const RelAttr &relAttr);
+    void GetAttrInfoByRelAttr(AttrInfoInRecord &attrInfo, const RelAttr &relAttr);  //通过RelAttr填充AttrInfo
     AttrType GetAttrType(const RelAttr &relAttr);   //获取属性类型
     void CleanUp();     //调用增删改查操作之后的清理工作
 public:

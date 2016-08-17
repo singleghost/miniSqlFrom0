@@ -15,21 +15,6 @@ QL_ProjNode::QL_ProjNode(QL_Manager &qlm, QL_Node &prevNode, int nAttrs, const R
     int i, j;
     tupleLength = 0;
 
-//    if(nAttrs == 1) {
-//        if(projAttrs[0].relName == nullptr && !strcmp(projAttrs[0].attrName, "*")) {
-//            nAttrInfos = qlm.ntotAttrInfo;
-//            this->attrInfos = new AttrInfoInRecord[nAttrInfos];
-//            memcpy(this->attrInfos, qlm.attrInfosArr, sizeof(AttrInfoInRecord) * qlm.ntotAttrInfo);
-//            this->offsetInPrev = new int[nAttrs];
-//            for(j = 0; j < nPrevAttrs; j++) {
-//                offsetInPrev[j] = prevAttrList[j].offset;
-//                tupleLength += prevAttrList->attrLength;
-//            }
-//            buffer = new char[tupleLength];
-//            return ;
-//        }
-//
-//    }
     nAttrInfos = nAttrs;
     this->attrInfos = new AttrInfoInRecord[nAttrs];
     this->offsetInPrev = new int[nAttrs];
@@ -60,8 +45,7 @@ QL_ProjNode::QL_ProjNode(QL_Manager &qlm, QL_Node &prevNode, int nAttrs, const R
 }
 
 QL_ProjNode::~QL_ProjNode() {
-    delete [] buffer;
-    delete [] attrInfos;
+    if(buffer) delete [] buffer;
 }
 
 void QL_ProjNode::Open() {

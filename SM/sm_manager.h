@@ -64,8 +64,8 @@ private:
     void FillDataAttrInfoForPrint(DataAttrInfo *dataAttrInfos, int nAttrs, const RelAttr *relAttrs, int nAttrInfos,
                                   AttrInfoInRecord *attrInfos);
     AttrType GetAttrType(const char *relName, const char *attrName, int nrelations, const char *const *relations);
-    void FillRelCatTuples(RelcatTuple *relcatTuples, int nRelations, const char * const relations[]);
-    void FillAttrInfoInRecords(AttrInfoInRecord *attrInfos, int nRelations, const RelcatTuple *relCatTuples);
+    RC FillRelCatTuples(RelcatTuple *relcatTuples, int nRelations, const char *const relations[]);
+    int FillAttrInfoInRecords(AttrInfoInRecord *attrInfos, int nRelations, const RelcatTuple *relCatTuples);
     void FillRelAttrs(int nRelations, const char *const *relations, vector<RelAttr> &relAttrs);
 
 public:

@@ -513,25 +513,27 @@ SM_Manager::GetAttrType(const char *relName, const char *attrName, int nrelation
 }
 
 
-void SM_Manager::FillRelCatTuples(RelcatTuple *relcatTuples, int nRelations, const char *const *relations) {
+RC SM_Manager::FillRelCatTuples(RelcatTuple *relcatTuples, int nRelations, const char *const *relations) {
     int i;
     RM_Record rec;
     for (i = 0; i < nRelations; i++) {
         rm_fileScan.OpenScan(relcat_fhandler, STRING, MAXNAME, 0, EQ_OP, (void *) relations[i]);
-        if (rm_fileScan.GetNextRec(rec) == RM_EOF) assert(false);
+        if (rm_fileScan.GetNextRec(rec) == RM_EOF) {
+            rm_fileScan.CloseScan();
+            return SM_TABLE_NOT_EXIST;
+        }
         memcpy(&relcatTuples[i], rec.GetContent(), sizeof(RelcatTuple));
         rm_fileScan.CloseScan();
     }
+    return 0;
 }
 
-void SM_Manager::FillAttrInfoInRecords(AttrInfoInRecord *attrInfos, int nRelations, const RelcatTuple *relCatTuples) {
-    int i, j, m;
-    int nAttrsOfRel;
+int SM_Manager::FillAttrInfoInRecords(AttrInfoInRecord *attrInfos, int nRelations, const RelcatTuple *relCatTuples) {
+    int i, m;
     int baseOffset = 0;
     RM_Record rec;
     m = 0;
     for (i = 0; i < nRelations; i++) {
-        nAttrsOfRel = relCatTuples[i].attrCount;
 
         rm_fileScan.OpenScan(attrcat_fhandler, STRING, MAXNAME, 0, EQ_OP, (void *) relCatTuples[i].relName);
         while (rm_fileScan.GetNextRec(rec) != RM_EOF) {
@@ -543,6 +545,7 @@ void SM_Manager::FillAttrInfoInRecords(AttrInfoInRecord *attrInfos, int nRelatio
         rm_fileScan.CloseScan();
         baseOffset += relCatTuples[i].tupleLength;
     }
+    return 0;
 
 }
 

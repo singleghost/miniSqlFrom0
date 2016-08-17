@@ -17,6 +17,6 @@ set(DBDESTROY_SOURCE
         BM/bm_hashTable.cpp BM/bm_hashTable.h BM/bm_buffermgr.cpp BM/bm_buffermgr.h PF/pf_filemgr.cpp PF/pf_exception.h RM/rm.cpp RM/rm.h RM/rm_fileHandler.cpp RM/rm_pageHandler.cpp
         RM/rm_fileScan.cpp IX/ix.h IX/ix_manager.cpp IX/ix_IndexHandler.cpp IX/IX_pageHandler.cpp IX/ix_Key.cpp IX/ix_IndexScan.cpp SM/sm_manager.cpp SM/printer.h SM/printer.cpp QL/ql.h QL/ql_node.cpp QL/ql_relNode.cpp QL/ql_joinNode.cpp QL/ql_projNode.cpp QL/ql_selNode.cpp QL/ql.cpp
         dbdestroy.cpp)
-add_executable(miniSqlFrom0 ${SOURCE_FILES})
+add_executable(miniSqlFrom0 ${SOURCE_FILES} QL/CondFilter.cpp QL/CondFilter.h)
 add_executable(dbcreate ${DBCREATE_SOURCE})
 add_executable(dbdestroy ${DBDESTROY_SOURCE})

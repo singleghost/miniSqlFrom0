@@ -26,11 +26,14 @@ using std::ostream;
 class QL_Manager;
 class QL_Node { //抽象node类
 private:
-    QL_Node(const QL_Node &ql_node);
     QL_Node &operator =(const QL_Node &ql_node);
 public:
+    QL_Node(const QL_Node &ql_node) : qlm(ql_node.qlm), tupleLength(ql_node.tupleLength), nAttrInfos(ql_node.nAttrInfos) {
+        attrInfos = new AttrInfoInRecord[nAttrInfos];
+        memcpy(attrInfos, ql_node.attrInfos, sizeof(AttrInfoInRecord) * nAttrInfos);
+    }
     QL_Node(QL_Manager &qlm) : qlm(qlm) {}
-    virtual ~QL_Node() {}
+    virtual ~QL_Node() { delete [] attrInfos; }
     //作为迭代器的三个方法, 纯虚函数,继承类必须实现!!!
     virtual void Open() = 0;
     virtual RC GetNext(RM_Record &rec) = 0;
@@ -71,9 +74,9 @@ private:
 //选择节点, Condition中的条件
 class QL_SelNode : public QL_Node {
 private:
-    QL_SelNode(const QL_SelNode &ql_node);
     QL_SelNode &operator =(QL_SelNode &ql_node);
 public:
+    QL_SelNode(const QL_SelNode &ql_node) : QL_Node(ql_node), prevNode(ql_node.prevNode), cond(ql_node.cond) {}
     QL_SelNode(QL_Manager &qlm, QL_Node &prevNode, Condition cond);
     virtual ~QL_SelNode();
     virtual void Open();
@@ -84,22 +87,20 @@ public:
 private:
     QL_Node &prevNode;  //前一个节点
     Condition cond;   //选择条件
-    bool (*compfunc)(const void *value1, const void *value2, AttrType attrType, int attrLength);    //比较函数
-
-    AttrInfoInRecord leftAttr;  //condition中的左属性
-    AttrInfoInRecord rightAttr; //condition中的右属性
-
 };
 
 //Join节点,有左右两个子节点,右节点是relNode, 左节点可以是relNode或joinNode
 class QL_JoinNode : public QL_Node {
 private:
     //禁用
-    QL_JoinNode(const QL_JoinNode &ql_node);
     QL_JoinNode &operator =(QL_JoinNode &ql_node);
 public:
     QL_JoinNode(QL_Manager &qlm, QL_Node &leftNode, QL_Node &rightNode);
-    virtual ~QL_JoinNode() {}
+    QL_JoinNode(const QL_JoinNode &ql_node) : QL_Node(ql_node), lSubNode(ql_node.lSubNode), rSubNode(ql_node.rSubNode) {
+        buffer = new char[tupleLength];
+        bRightNodeEOF = ql_node.bRightNodeEOF;
+    }
+    virtual ~QL_JoinNode() { delete [] buffer; }
     virtual void Open();
     virtual RC GetNext(RM_Record &rec);
     virtual void Close();
@@ -117,28 +118,39 @@ private:
 class QL_RelNode : public QL_Node {
 private:
     //禁用
-    QL_RelNode(const QL_RelNode &ql_node);
     QL_RelNode &operator =(QL_RelNode &ql_node);
 public:
-    QL_RelNode(QL_Manager &qlm, const char *const relation, const Condition &cond, bool hasCond);    //关系名来初始化
+    QL_RelNode(const QL_RelNode &ql_node) : QL_Node(ql_node), relName(ql_node.relName), relCatTuple(ql_node.relCatTuple){
+        useIndexScan = ql_node.useIndexScan;
+        if(useIndexScan) {
+            indexCond = ql_node.indexCond;
+            leftAttr = ql_node.leftAttr;
+        }
+        otherConds = ql_node.otherConds;
+    }
+    QL_RelNode(QL_Manager &qlm, const char *const relation, const Condition &indexCond);    //关系名来初始化
+    QL_RelNode(QL_Manager &qlm, const char *const relation);
     virtual ~QL_RelNode();
     virtual void Open();
     virtual RC GetNext(RM_Record &rec);
     virtual void Close();
     virtual void Reset();
-
+    void AddCondition(const Condition &cond);
+    void AddIndexCondition(const Condition &cond);
 private:
-    char *relName;              //关系名
-    RelcatTuple *relCatTuple;   //关系的catalog信息
+    string relName;              //关系名
+    shared_ptr<RelcatTuple> relCatTuple;   //关系的catalog信息
     RM_FileHandler rm_fileHandler;
     RM_FileScan rm_fileScan;
     IX_IndexHandler ix_indexHandler;
     IX_IndexScan ix_indexScan;
 
-    bool hasCond;       //是否有选择条件
-    Condition cond;   //选择条件
+//    bool hasIndexCond;       //是否有选择条件
+    Condition indexCond;   //选择条件
     AttrInfoInRecord leftAttr;  //如果有conditon的情况,左属性
-    bool useIndex;      //迭代时是否使用indexScan
+    bool useIndexScan;      //迭代时是否使用indexScan
+    vector<Condition> otherConds;
+    void InitRelNodeInfos();
 };
 
 class QL_Manager {
@@ -147,6 +159,7 @@ class QL_Manager {
     friend class QL_SelNode;
     friend class QL_ProjNode;
     friend class QL_JoinNode;
+    friend class CondFilter;
 
 private:
     SM_Manager &smm;
@@ -160,11 +173,10 @@ private:
 
     bool HasDupAttrName(int nAttrs, const RelAttr Attrs[]);                 //检查是否有重复的属性名
     bool HasDupTableName(int nRelations, const char * const relations[]);   //检查是否有重复的表名
-    bool CheckTablesValid(int nRelations, const char * const relations[]);  //检查表是否存在
-    bool CheckAttrValid(int nAttrs, const RelAttr Attrs[], int nRelations, const char * const relations[]); //检查属性是否存在
-    bool CheckCondAttrValid(int nRelations, const char *const relations[], int nCondions, const Condition conditions[]);
+    RC CheckAttrValid(int nAttrs, const RelAttr *Attrs); //检查属性是否存在
+    RC CheckCondsValid(int nConditions, const Condition *conditions);   //检查conditions中的属性是否存在,比较类型是否一致
     //检查conditions中的属性是否存在
-    bool CheckCondCompTypeConsistent(int nConditions, const Condition *conditions); //检查conditions中的左右类型是否一致
+    RC InitRelationAndAttrInfos(const char *const *relName, int nRelations);
 
     void GetAttrInfoByRelAttr(AttrInfoInRecord &attrInfo, const RelAttr &relAttr);  //通过RelAttr填充AttrInfo
     AttrType GetAttrType(const RelAttr &relAttr);   //获取属性类型

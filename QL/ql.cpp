@@ -11,6 +11,11 @@ QL_Manager::QL_Manager(SM_Manager &smm, IX_Manager &ixm, RM_Manager &rmm) : smm(
 
 RC QL_Manager::Select(int nSelAttrs, const RelAttr *selAttrs, int nRelations, const char *const *relations,
                       int nConditions, const Condition *conditions) {
+
+    RC rc;
+    //填充relcatTuples和AttrInfoInRecords数组,查询所需的必要信息(附带检查了表名是否存在)
+    if ((rc = InitRelationAndAttrInfos(relations, nRelations))) return rc;
+
     //语义检查
     /*-------------------------------------------------------------*/
     //检查selattrs中有无重复的属性
@@ -21,83 +26,52 @@ RC QL_Manager::Select(int nSelAttrs, const RelAttr *selAttrs, int nRelations, co
     if (HasDupTableName(nRelations, relations)) {
         return QL_DUP_TABLE_NAME;
     }
-    //检查relations中的表名是否都存在
-    if (!CheckTablesValid(nRelations, relations)) {
-        return QL_TABLE_NOT_EXIST;
-    }
-
     //检查selAttrs中的属性是否都属于relations
-    if (!CheckAttrValid(nSelAttrs, selAttrs, nRelations, relations)) {
-        return QL_ATTR_NOT_EXIST;
+    if ((rc = CheckAttrValid(nSelAttrs, selAttrs))) {
+        return rc;
     }
 
     //检查conditions中的属性是否存在
-    if (!CheckCondAttrValid(nRelations, relations, nConditions, conditions)) {
-        return QL_ATTR_NOT_EXIST;
-    }
+    //属性和比较值(属性)的类型是否一致
+    if ((rc = CheckCondsValid(nConditions, conditions))) return rc;
 
     int i, k;
     /*-------------------------------------------------------------*/
     //构建查询计划树
-    this->nRelations = nRelations;
+    vector<Condition> condsleft;    //不同表之间属性比较的condtion都放在这里面
+    for (i = 0; i < nConditions; i++) condsleft.push_back(conditions[i]);
 
-    //填充relcatTuples和AttrInfoInRecords数组,查询所需的必要信息
-    relcatTuples = new RelcatTuple[nRelations];
-    smm.FillRelCatTuples(relcatTuples, nRelations, relations);
+    vector< QL_RelNode > relNodes;
     for (i = 0; i < nRelations; i++) {
-        ntotAttrInfo += relcatTuples[i].attrCount;
-        //查询所有表的属性数量之和
-    }
-    attrInfosArr = new AttrInfoInRecord[ntotAttrInfo];
-    smm.FillAttrInfoInRecords(attrInfosArr, nRelations, relcatTuples);
+        relNodes.push_back(QL_RelNode(*this, relations[i]));
+        for (auto it = begin(condsleft); it < end(condsleft); it++) {
+            if ((*it).bRhsIsAttr) continue;
 
-    //属性和比较值(属性)的类型是否一致
-    if (!CheckCondCompTypeConsistent(nConditions, conditions)) {
-        return QL_INCOMPATIBLE_COMP_OP;
-    }
-
-    Condition cond;
-    vector<int> condsUsed;
-    QL_RelNode *relNodes[nRelations];
-    bool hasCond;
-    for (i = 0; i < nRelations; i++) {
-        hasCond = false;
-        for(k = 0; k < nConditions; k++) {
-            if(conditions[k].bRhsIsAttr) continue;
-
-            int relNum;
-            if(smm.IsAttrInOneOfRelations(conditions[k].lhsAttr.attrName, nRelations, relations, relNum)) {
-                if(relNum == i) {
-                    cond = conditions[k];
-                    hasCond = true;
-                    condsUsed.push_back(k);
-                    break;
+            AttrInfoInRecord attrInfoInRecord;
+            GetAttrInfoByRelAttr(attrInfoInRecord, (*it).lhsAttr);
+            if (!strcmp(attrInfoInRecord.relName, relations[i])) {
+                if (attrInfoInRecord.indexNo != NO_INDEX) {
+                    relNodes.back().AddIndexCondition(*it);
+                } else {
+                    relNodes.back().AddCondition(*it);
                 }
+                condsleft.erase(it);    //TODO it or it++?
             }
-        }
-        relNodes[i] = new QL_RelNode(*this, relations[i], cond, hasCond);
-    }
-    QL_JoinNode *joinNodes[nRelations - 1];
 
-    QL_Node *topNode = relNodes[0]; //topNode始终指向查询计划树的根节点
+        }
+    }
+    vector<QL_JoinNode> joinNodes;
+
+    QL_Node *topNode = &relNodes.front(); //topNode始终指向查询计划树的根节点
     for (i = 1; i < nRelations; i++) {
-        joinNodes[i - 1] = new QL_JoinNode(*this, *topNode, *relNodes[i]);  //构建一颗左深树
-        topNode = joinNodes[i - 1];
+        joinNodes.push_back(QL_JoinNode(*this, *topNode, relNodes[i]));  //构建一颗左深树
+        topNode = &joinNodes.back();
     }
 
-    QL_SelNode *selNodes[nConditions];
-    bool skip;
-    for (i = 0; i < nConditions; i++) {
-        skip = false;
-        for(int num : condsUsed) {
-            if(num == i) {
-                skip = true;
-                break;
-            }
-        }
-        if(skip) continue;
-        selNodes[i] = new QL_SelNode(*this, *topNode, conditions[i]);
-        topNode = selNodes[i];
+    vector<QL_SelNode> selNodes;
+    for (auto it = begin(condsleft); it < end(condsleft); it++) {
+        selNodes.push_back(QL_SelNode(*this, *topNode, *it));
+        topNode = &selNodes.at(i);
     }
 
     QL_ProjNode projNode(*this, *topNode, nSelAttrs, selAttrs);
@@ -105,14 +79,9 @@ RC QL_Manager::Select(int nSelAttrs, const RelAttr *selAttrs, int nRelations, co
     RM_Record rec;
 
     //fill DataAttrInfo数组
-
-    int nAttrs;
-    if (nSelAttrs == 1 && selAttrs[0].relName == nullptr && !strcmp(selAttrs[0].attrName, "*")) {
-        nAttrs = ntotAttrInfo;
-    } else nAttrs = nSelAttrs;
     DataAttrInfo *attributes = new DataAttrInfo[nSelAttrs];
-    //填充attributes
 
+    //填充attributes
     smm.FillDataAttrInfoForPrint(attributes, nSelAttrs, selAttrs, ntotAttrInfo, attrInfosArr);
     Printer p(attributes, nSelAttrs);
     p.PrintHeader(cout);
@@ -131,13 +100,11 @@ RC QL_Manager::Select(int nSelAttrs, const RelAttr *selAttrs, int nRelations, co
 RC QL_Manager::Insert(const char *relName, int nValues, const Value *values) {
     RM_FileHandler rm_fileHandler;
     RM_FileScan fileScan;
-    rmm.OpenFile(relName, rm_fileHandler);
+    RC rc;
+    if ((rc = InitRelationAndAttrInfos(&relName, 1)))
+        return rc;
 
-    relcatTuples = new RelcatTuple;
-    smm.FillRelCatTuples(relcatTuples, 1, &relName);
-    ntotAttrInfo = relcatTuples->attrCount;
-    attrInfosArr = new AttrInfoInRecord[relcatTuples->attrCount];
-    smm.FillAttrInfoInRecords(attrInfosArr, 1, relcatTuples);
+    rmm.OpenFile(relName, rm_fileHandler);
 
     //先检查是否会和primary属性冲突
     int i;
@@ -145,7 +112,7 @@ RC QL_Manager::Insert(const char *relName, int nValues, const Value *values) {
     RID rid;
     for (i = 0; i < ntotAttrInfo; i++) {
         if (attrInfosArr[i].isPrimary) {
-            if(attrInfosArr[i].indexNo != NO_INDEX) {
+            if (attrInfosArr[i].indexNo != NO_INDEX) {
                 IX_IndexScan indexScan;
                 IX_IndexHandler indexHandler;
                 ixm.OpenIndex(relName, attrInfosArr[i].indexNo, indexHandler);
@@ -199,27 +166,20 @@ RC QL_Manager::Insert(const char *relName, int nValues, const Value *values) {
 
 RC QL_Manager::Update(const char *relName, const RelAttr &updAttr, const int bIsValue, const RelAttr &rhsRelAttr,
                       const Value &rhsValue, int nConditions, const Condition *conditions) {
+    RC rc;
     /*----------------------语义检查-----------------------------------*/
-    if (!CheckTablesValid(1, &relName)) return QL_TABLE_NOT_EXIST;
-    if (!CheckAttrValid(1, &updAttr, 1, &relName)) return QL_ATTR_NOT_EXIST;
+    if ((rc = InitRelationAndAttrInfos(&relName, 1))) return rc;
+    if ((rc = CheckAttrValid(1, &updAttr))) return rc;
     if (!bIsValue) { //如果右值是属性
-        if (!CheckAttrValid(1, &rhsRelAttr, 1, &relName)) return QL_ATTR_NOT_EXIST;
+        if ((rc = CheckAttrValid(1, &rhsRelAttr))) return rc;
     }
-    if (!CheckCondAttrValid(1, &relName, nConditions, conditions)) return QL_ATTR_NOT_EXIST;
+    if ((rc = CheckCondsValid(nConditions, conditions))) return rc;
 
-    relcatTuples = new RelcatTuple;
-    smm.FillRelCatTuples(relcatTuples, 1, &relName);
-    nRelations = 1;
-    ntotAttrInfo = relcatTuples->attrCount;
-    attrInfosArr = new AttrInfoInRecord[relcatTuples->attrCount];
-
-    smm.FillAttrInfoInRecords(attrInfosArr, 1, relcatTuples);
 
     /*----------------------构建查询树-----------------------------------*/
-    if (!CheckCondCompTypeConsistent(nConditions, conditions)) return QL_INCOMPATIBLE_COMP_OP;
 
     QL_Node *topNode;
-    QL_RelNode *relNode = new QL_RelNode(*this, relName, Condition(), false);
+    QL_RelNode *relNode = new QL_RelNode(*this, relName, Condition());
     topNode = relNode;
     int i, j;
     QL_SelNode *selNodes[nConditions];
@@ -279,25 +239,33 @@ RC QL_Manager::Update(const char *relName, const RelAttr &updAttr, const int bIs
     return 0;
 }
 
+RC QL_Manager::InitRelationAndAttrInfos(const char *const *relName, int nRelations) {
+    RC rc;
+    relcatTuples = new RelcatTuple[nRelations];
+    if ((rc = smm.FillRelCatTuples(relcatTuples, nRelations, relName)))
+        return rc;
+    this->nRelations = nRelations;
+    int i;
+    for (i = 0; i < nRelations; i++) {
+        ntotAttrInfo += relcatTuples[i].attrCount;
+        //查询所有表的属性数量之和
+    }
+    attrInfosArr = new AttrInfoInRecord[ntotAttrInfo];
+
+    smm.FillAttrInfoInRecords(attrInfosArr, nRelations, relcatTuples);
+    return 0;
+}
+
 RC QL_Manager::Delete(const char *relName, int nConditions, const Condition *conditions) {
 
-    if (!CheckTablesValid(1, &relName)) return QL_TABLE_NOT_EXIST;
-    if (!CheckCondAttrValid(1, &relName, nConditions, conditions)) return QL_ATTR_NOT_EXIST;
-
-    relcatTuples = new RelcatTuple;
-    nRelations = 1;
-    smm.FillRelCatTuples(relcatTuples, 1, &relName);
-    ntotAttrInfo = relcatTuples->attrCount;
-    attrInfosArr = new AttrInfoInRecord[relcatTuples->attrCount];
-    smm.FillAttrInfoInRecords(attrInfosArr, 1, relcatTuples);
-
-    if (!CheckCondCompTypeConsistent(nConditions, conditions)) return QL_INCOMPATIBLE_COMP_OP;
+    RC rc;
+    if ((rc = InitRelationAndAttrInfos(&relName, 1))) return rc;
+    if ((rc = CheckCondsValid(nConditions, conditions))) return rc;
 
 
     /*----------------------构建查询树-----------------------------------*/
     QL_Node *topNode;
-    //bug
-    QL_RelNode *relNode = new QL_RelNode(*this, relName, Condition(), false);
+    QL_RelNode *relNode = new QL_RelNode(*this, relName, Condition());
     topNode = relNode;
     int i, j;
     QL_SelNode *selNodes[nConditions];
@@ -376,62 +344,57 @@ bool QL_Manager::HasDupTableName(int nRelations, const char *const *relations) {
     return false;
 }
 
-bool QL_Manager::CheckAttrValid(int nAttrs, const RelAttr *Attrs, int nRelations, const char *const relations[]) {
-    int i, j;
-    int relNum;
+RC QL_Manager::CheckAttrValid(int nAttrs, const RelAttr *Attrs) {
+    int i, k;
     for (i = 0; i < nAttrs; i++) {
         if (Attrs[i].relName == NULL) {  //如果没有指定表名
-            if (!smm.IsAttrInOneOfRelations(Attrs[i].attrName, nRelations, relations, relNum)) {
-                return false;
+            for (k = 0; k < ntotAttrInfo; k++) {
+                if (!strcmp(Attrs[i].attrName, attrInfosArr[k].attrName))
+                    break;
             }
+            if (k >= ntotAttrInfo) return QL_ATTR_NOT_EXIST;
+
         } else {    //如果指定了表名
-            if (!smm.IsAttrInOneOfRelations(Attrs[i].attrName, 1, (const char *const *) &Attrs[i].relName,
-                                            relNum)) {
-                return false;
+            for (k = 0; k < ntotAttrInfo; k++) {
+                if (!strcmp(Attrs[i].relName, attrInfosArr[k].relName) &&
+                    !strcmp(Attrs[i].attrName, attrInfosArr[k].attrName))
+                    break;
             }
+            if (k >= ntotAttrInfo) return QL_ATTR_NOT_EXIST;
         }
     }
-    return true;
+    return 0;
 }
 
-bool QL_Manager::CheckTablesValid(int nRelations, const char *const *relations) {
-    int i;
-    for (i = 0; i < nRelations; i++) {
-        if (!smm.IsRelationExist(relations[i])) return false;
-    }
-    return true;
-}
 
-bool QL_Manager::CheckCondAttrValid(int nRelations, const char *const *relations, int nCondions,
-                                    const Condition *conditions) {
-    RelAttr *Attrs = new RelAttr[nCondions * 2];
+RC QL_Manager::CheckCondsValid(int nConditions, const Condition *conditions) {
+    RC rc;
+    RelAttr *Attrs = new RelAttr[nConditions * 2];
     int nAttrs = 0;
     int i;
-    for (i = 0; i < nCondions; i++) {
+    for (i = 0; i < nConditions; i++) {
         Attrs[nAttrs++] = conditions[i].lhsAttr;
         if (conditions[i].bRhsIsAttr) {  //如果右值是属性
             Attrs[nAttrs++] = conditions[i].rhsAttr;
         }
     }
-    if (!CheckAttrValid(nAttrs, Attrs, nRelations, relations)) {
-        return false;
+    if ((rc = CheckAttrValid(nAttrs, Attrs))) {
+        return rc;
     }
-    return true;
-}
-
-bool QL_Manager::CheckCondCompTypeConsistent(int nConditions, const Condition *conditions) {
-    int i;
     for (i = 0; i < nConditions; i++) {
         if (!conditions[i].bRhsIsAttr) {
             //如果右值是常量
-            if (GetAttrType(conditions[i].lhsAttr) != conditions[i].rhsValue.type) return false;
+            if (GetAttrType(conditions[i].lhsAttr) != conditions[i].rhsValue.type) return QL_INCOMPATIBLE_COMP_OP;
         } else {
             //如果右值是属性
-            if (GetAttrType(conditions[i].lhsAttr) != GetAttrType(conditions[i].rhsAttr)) return false;
+            if (GetAttrType(conditions[i].lhsAttr) != GetAttrType(conditions[i].rhsAttr))
+                return QL_INCOMPATIBLE_COMP_OP;
         }
     }
-    return true;
+    delete[] Attrs;
+    return 0;
 }
+
 
 AttrType QL_Manager::GetAttrType(const RelAttr &relAttr) {
     assert(attrInfosArr != NULL);
@@ -477,3 +440,4 @@ const char *ql_error_msg[] = {"duplicate attribute name", "duplicate table name"
 void QL_PrintError(RC rc) {
     printf("Error: %s\n", ql_error_msg[START_QL_ERR - 1 - rc]);
 }
+

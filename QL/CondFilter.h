@@ -7,10 +7,12 @@
 
 
 #include "../Parse/parser.h"
+#include "ql.h"
+
 class QL_Manager;
 class CondFilter {
 public:
-    CondFilter(QL_Manager &qlm, const Condition &cond);
+    CondFilter(QL_Manager &qlm, const Condition &cond, int relOffset);
     bool check(char *rec);
 
 private:

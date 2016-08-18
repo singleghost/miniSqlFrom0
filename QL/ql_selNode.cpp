@@ -11,9 +11,7 @@ QL_SelNode::QL_SelNode(QL_Manager &qlm, QL_Node &prevNode, Condition cond) : QL_
     nAttrInfos = prevNode.GetAttrNum();
     attrInfos = new AttrInfoInRecord[nAttrInfos];
 
-    AttrInfoInRecord *prevAttrInfos;
-    prevNode.GetAttrList(prevAttrInfos);
-    memcpy(attrInfos, prevAttrInfos, sizeof(AttrInfoInRecord) * nAttrInfos);
+    memcpy(attrInfos, prevNode.GetAttrList(), sizeof(AttrInfoInRecord) * nAttrInfos);
 
 }
 
@@ -24,7 +22,7 @@ void QL_SelNode::Open() {
 RC QL_SelNode::GetNext(RM_Record &rec) {
     while (true) {
         if (prevNode.GetNext(rec) == QL_EOF) return QL_EOF;
-        CondFilter condFilter(qlm, this->cond);
+        CondFilter condFilter(qlm, this->cond, 0);
         if(!condFilter.check(rec.GetContent())) continue;
         else return 0;
     }

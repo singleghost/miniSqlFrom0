@@ -8,38 +8,30 @@
 QL_ProjNode::QL_ProjNode(QL_Manager &qlm, QL_Node &prevNode, int nAttrs, const RelAttr projAttrs[]) :
         QL_Node(qlm), prevNode(prevNode)
 {
-    AttrInfoInRecord *prevAttrList;
-    prevNode.GetAttrList(prevAttrList);
+    const AttrInfoInRecord *prevAttrList = prevNode.GetAttrList();
     int nPrevAttrs = prevNode.GetAttrNum();
 
     int i, j;
     tupleLength = 0;
-
     nAttrInfos = nAttrs;
     this->attrInfos = new AttrInfoInRecord[nAttrs];
-    this->offsetInPrev = new int[nAttrs];
     for (i = 0; i < nAttrs; i++) {
         for (j = 0; j < nPrevAttrs; j++) {
             if (projAttrs[i].relName) {
                 if (!strcmp(projAttrs[i].attrName, prevAttrList[j].attrName) &&
                     !strcmp(projAttrs[i].relName, prevAttrList[j].relName)) {
-                    memcpy(&attrInfos[i], &prevAttrList[j], sizeof(AttrInfoInRecord));
-                    attrInfos[i].offset = tupleLength;
-                    tupleLength += attrInfos[i].attrLength;
-                    offsetInPrev[i] = prevAttrList[j].offset;
                     break;
                 }
-
             } else {
                 if(!strcmp(projAttrs[i].attrName, prevAttrList[j].attrName)) {
-                    memcpy(&attrInfos[i], &prevAttrList[j], sizeof(AttrInfoInRecord));
-                    attrInfos[i].offset = tupleLength;
-                    tupleLength += attrInfos[i].attrLength;
-                    offsetInPrev[i] = prevAttrList[j].offset;
                     break;
                 }
             }
         }
+        memcpy(&attrInfos[i], &prevAttrList[j], sizeof(AttrInfoInRecord));
+        attrInfos[i].offset = tupleLength;
+        tupleLength += attrInfos[i].attrLength;
+        offsetInPrev.push_back(prevAttrList[j].offset);
     }
     buffer = new char[tupleLength];
 }
@@ -54,8 +46,6 @@ void QL_ProjNode::Open() {
 }
 
 RC QL_ProjNode::GetNext(RM_Record &rec) {
-    AttrInfoInRecord *prevAttrInfos;
-    prevNode.GetAttrList(prevAttrInfos);
     RM_Record record;
     if (prevNode.GetNext(record) == QL_EOF) {
         return QL_EOF;

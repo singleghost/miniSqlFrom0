@@ -5,6 +5,3 @@
 #include "ql.h"
 
 /*-------------------------------抽象类QL_Node-------------------------------------*/
-void QL_Node::GetAttrList(AttrInfoInRecord *&attrList) {
-    attrList = attrInfos;
-}

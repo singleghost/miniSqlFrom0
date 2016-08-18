@@ -318,7 +318,7 @@ RC SyntaxAnalyser::Parse_attrDefList(vector<AttrInfo> &attrDefs) {
     RC rc;
     Token tok;
     AttrInfo attrInfo;
-    if (rc = Parse_attrDef(attrInfo)) return rc;
+    if ((rc = Parse_attrDef(attrInfo))) return rc;
     attrDefs.push_back(attrInfo);
     while (true) {
         if (GetNextToken(tok)) return LEX_ERR;

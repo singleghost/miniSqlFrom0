@@ -7,10 +7,8 @@
 QL_JoinNode::QL_JoinNode(QL_Manager &qlm, QL_Node &leftNode, QL_Node &rightNode)
         : QL_Node(qlm), lSubNode(leftNode), rSubNode(rightNode)
 {
-    AttrInfoInRecord *leftAttrInfos;
-    AttrInfoInRecord *rightAttrInfos;
-    lSubNode.GetAttrList(leftAttrInfos);
-    rSubNode.GetAttrList(rightAttrInfos);
+    const AttrInfoInRecord *leftAttrInfos = lSubNode.GetAttrList();
+    const AttrInfoInRecord *rightAttrInfos = rSubNode.GetAttrList();
 
     tupleLength = lSubNode.GetTupleLength() + rSubNode.GetTupleLength();
     nAttrInfos = lSubNode.GetAttrNum() + rSubNode.GetAttrNum();
@@ -36,22 +34,23 @@ RC QL_JoinNode::GetNext(RM_Record &rec) {
     RM_Record leftRec;
     RM_Record rightRec;
 
-    nextTurn:
-    if (bRightNodeEOF) {
-        if (lSubNode.GetNext(leftRec) == QL_EOF)
-            return QL_EOF;
-        memcpy(buffer, leftRec.GetContent(), leftRec.GetRecordSize());
-        bRightNodeEOF = false;
+    while(true) {
+        if (bRightNodeEOF) {
+            if (lSubNode.GetNext(leftRec) == QL_EOF)
+                return QL_EOF;
+            memcpy(buffer, leftRec.GetContent(), leftRec.GetRecordSize());
+            bRightNodeEOF = false;
+        }
+        if (rSubNode.GetNext(rightRec) == QL_EOF) {
+            bRightNodeEOF = true;
+            rSubNode.Reset();
+            continue;
+        }
+        memcpy(buffer + lSubNode.GetTupleLength(), rightRec.GetContent(), rSubNode.GetTupleLength());
+        RID rid(-1, -1);
+        rec = RM_Record(buffer, rid, tupleLength);
+        return 0;
     }
-    if (rSubNode.GetNext(rightRec) == QL_EOF) {
-        bRightNodeEOF = true;
-        rSubNode.Reset();
-        goto nextTurn;
-    }
-    memcpy(buffer + lSubNode.GetTupleLength(), rightRec.GetContent(), rSubNode.GetTupleLength());
-    RID rid(-1, -1);
-    rec = RM_Record(buffer, rid, tupleLength);
-    return 0;
 }
 
 void QL_JoinNode::Close() {

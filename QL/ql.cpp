@@ -41,9 +41,11 @@ RC QL_Manager::Select(int nSelAttrs, const RelAttr *selAttrs, int nRelations, co
     vector<Condition> condsleft;    //不同表之间属性比较的condtion都放在这里面
     for (i = 0; i < nConditions; i++) condsleft.push_back(conditions[i]);
 
-    vector< QL_RelNode > relNodes;
+    vector<QL_RelNode> relNodes;
+    int relOffset = 0;
     for (i = 0; i < nRelations; i++) {
-        relNodes.push_back(QL_RelNode(*this, relations[i]));
+        relNodes.push_back(QL_RelNode(*this, relations[i], relOffset));
+        relOffset += relcatTuples[i].tupleLength;
         for (auto it = begin(condsleft); it < end(condsleft); it++) {
             if ((*it).bRhsIsAttr) continue;
 
@@ -60,18 +62,18 @@ RC QL_Manager::Select(int nSelAttrs, const RelAttr *selAttrs, int nRelations, co
 
         }
     }
-    vector<QL_JoinNode> joinNodes;
+    QL_JoinNode *joinNodes[nRelations - 1];
 
     QL_Node *topNode = &relNodes.front(); //topNode始终指向查询计划树的根节点
     for (i = 1; i < nRelations; i++) {
-        joinNodes.push_back(QL_JoinNode(*this, *topNode, relNodes[i]));  //构建一颗左深树
-        topNode = &joinNodes.back();
+        joinNodes[i - 1] = new QL_JoinNode(*this, *topNode, relNodes[i]);  //构建一颗左深树
+        topNode = joinNodes[i - 1];
     }
 
     vector<QL_SelNode> selNodes;
     for (auto it = begin(condsleft); it < end(condsleft); it++) {
         selNodes.push_back(QL_SelNode(*this, *topNode, *it));
-        topNode = &selNodes.at(i);
+        topNode = &selNodes.back();
     }
 
     QL_ProjNode projNode(*this, *topNode, nSelAttrs, selAttrs);
@@ -179,7 +181,7 @@ RC QL_Manager::Update(const char *relName, const RelAttr &updAttr, const int bIs
     /*----------------------构建查询树-----------------------------------*/
 
     QL_Node *topNode;
-    QL_RelNode *relNode = new QL_RelNode(*this, relName, Condition());
+    QL_RelNode *relNode = new QL_RelNode(*this, relName, 0, Condition());
     topNode = relNode;
     int i, j;
     QL_SelNode *selNodes[nConditions];
@@ -265,7 +267,7 @@ RC QL_Manager::Delete(const char *relName, int nConditions, const Condition *con
 
     /*----------------------构建查询树-----------------------------------*/
     QL_Node *topNode;
-    QL_RelNode *relNode = new QL_RelNode(*this, relName, Condition());
+    QL_RelNode *relNode = new QL_RelNode(*this, relName, 0, Condition());
     topNode = relNode;
     int i, j;
     QL_SelNode *selNodes[nConditions];

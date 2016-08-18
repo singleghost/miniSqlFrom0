@@ -6,14 +6,15 @@
 #include "ql.h"
 #include "CondFilter.h"
 
-QL_RelNode::QL_RelNode(QL_Manager &qlm, const char *const relation) : QL_Node(qlm), relName(relation) {
+QL_RelNode::QL_RelNode(QL_Manager &qlm, const char *const relation, int relOffset) : QL_Node(qlm), relName(relation),
+                                                                                     relOffset(relOffset) {
     InitRelNodeInfos();
     useIndexScan = false;
 
 }
 
-QL_RelNode::QL_RelNode(QL_Manager &qlm, const char *const relation, const Condition &indexCond)
-        : QL_Node(qlm), relName(relation), indexCond(indexCond) {
+QL_RelNode::QL_RelNode(QL_Manager &qlm, const char *const relation, int relOffset, const Condition &indexCond)
+        : QL_Node(qlm), relName(relation), indexCond(indexCond), relOffset(relOffset) {
     InitRelNodeInfos();
     useIndexScan = true;
 }
@@ -42,11 +43,15 @@ void QL_RelNode::Open() {
     } else {
         rm_fileScan.OpenScan(rm_fileHandler, INT, 4, 0, NO_OP, NULL);
     }
+    for (Condition cond : otherConds) {
+        condFilters.push_back(CondFilter(qlm, cond, relOffset));
+    }
 }
 
 RC QL_RelNode::GetNext(RM_Record &rec) {
     RID rid;
     RC rc;
+    bool bWrong;
     while (true) {
         if (useIndexScan) {
             if ((rc = ix_indexScan.GetNextEntry(rid)))
@@ -60,10 +65,14 @@ RC QL_RelNode::GetNext(RM_Record &rec) {
             if (rm_fileScan.GetNextRec(rec) == RM_EOF)
                 return QL_EOF;
         }
-        for (Condition cond : otherConds) {
-            CondFilter condFilter(qlm, cond);
-            if (!condFilter.check(rec.GetContent())) continue;
+        bWrong = false;
+        for (auto i = 0; i < condFilters.size(); i++) {
+            if (!condFilters[i].check(rec.GetContent())) {
+                bWrong = true;
+                break;
+            }
         }
+        if (bWrong) continue;
         return 0;
     }
 }
@@ -100,3 +109,4 @@ void QL_RelNode::AddIndexCondition(const Condition &cond) {
     useIndexScan = true;
     indexCond = cond;
 }
+

@@ -52,7 +52,7 @@ struct RelAttr {
 
     ~RelAttr() {
         if (relName) delete[] relName;
-        delete[] attrName;
+        if(attrName) delete[] attrName;
     }
 
     RelAttr &operator=(const RelAttr &relAttr) {
